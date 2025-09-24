@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>画画小程序</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background: #f5f5f5;
+        }
+
+        #canvas {
+            display: block;
+            background: white;
+            cursor: crosshair;
+            border: 1px solid #ddd;
+            margin: 0 auto;
+        }
+
+        .toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 5px;
+            background: #fafafa;
+        }
+
+        .tool-label {
+            font-size: 12px;
+            color: #666;
+            margin-right: 5px;
+            font-weight: 500;
+        }
+
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button.active {
+            background: #2196F3;
+            box-shadow: 0 2px 5px rgba(33, 150, 243, 0.3);
+        }
+
+        button.eraser {
+            background: #FF9800;
+        }
+
+        button.eraser.active {
+            background: #F44336;
+        }
+
+        button.clear {
+            background: #f44336;
+        }
+
+        button.save {
+            background: #9C27B0;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        input[type="range"] {
+            width: 100px;
+            vertical-align: middle;
+        }
+
+        .size-display {
+            font-size: 12px;
+            color: #666;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .brush-preview {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 5px;
+            position: relative;
+        }
+
+        .brush-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: black;
+        }
+
+        @media (max-width: 600px) {
+            .toolbar {
+                padding: 8px 5px;
+                gap: 5px;
+            }
+
+            .tool-group {
+                padding: 3px;
+            }
+
+            button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            input[type="range"] {
+                width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="toolbar">
+        <div class="tool-group">
+            <span class="tool-label">工具:</span>
+            <button id="brushBtn" class="active">画笔</button>
+            <button id="eraserBtn" class="eraser">橡皮</button>
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">颜色:</span>
+            <input type="color" id="colorPicker" value="#000000">
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">粗细:</span>
+            <input type="range" id="brushSize" min="1" max="50" value="3">
+            <span class="size-display" id="sizeDisplay">3</span>
+            <div class="brush-preview">
+                <div class="brush-dot" id="brushDot"></div>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">笔触:</span>
+            <select id="brushType">
+                <option value="round">圆形</option>
+                <option value="square">方形</option>
+                <option value="butt">平头</option>
+            </select>
+        </div>
+
+        <button id="clearBtn" class="clear">清空</button>
+        <button id="saveBtn" class="save">保存</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const brushBtn = document.getElementById('brushBtn');
+        const eraserBtn = document.getElementById('eraserBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const brushType = document.getElementById('brushType');
+        const brushDot = document.getElementById('brushDot');
+
+        let isDrawing = false;
+        let isEraser = false;
+        let currentColor = '#000000';
+        let currentSize = 3;
+        let currentBrushType = 'round';
+
+        // 设置画布大小
+        function resizeCanvas() {
+            const toolbarHeight = document.querySelector('.toolbar').offsetHeight;
+            canvas.width = window.innerWidth - 2;
+            canvas.height = window.innerHeight - toolbarHeight - 20;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 更新笔刷预览
+        function updateBrushPreview() {
+            const size = Math.min(currentSize, 20);
+            brushDot.style.width = size + 'px';
+            brushDot.style.height = size + 'px';
+            brushDot.style.background = isEraser ? '#FF9800' : currentColor;
+
+            if (currentBrushType === 'square') {
+                brushDot.style.borderRadius = '0';
+            } else {
+                brushDot.style.borderRadius = '50%';
+            }
+        }
+
+        // 获取触摸或鼠标位置
+        function getPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches) {
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            } else {
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+        }
+
+        // 开始绘制
+        function startDrawing(e) {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPosition(e);
+
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+
+            // 绘制起始点
+            draw(e);
+        }
+
+        // 绘制
+        function draw(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+
+            const pos = getPosition(e);
+
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = currentBrushType;
+            ctx.lineJoin = currentBrushType === 'square' ? 'miter' : 'round';
+
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+            }
+
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        // 停止绘制
+        function stopDrawing(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        // 鼠标事件
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // 触摸事件（移动端）
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // 防止页面滚动
+        document.body.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        // 工具切换
+        brushBtn.addEventListener('click', () => {
+            isEraser = false;
+            brushBtn.classList.add('active');
+            eraserBtn.classList.remove('active');
+            updateBrushPreview();
+        });
+
+        eraserBtn.addEventListener('click', () => {
+            isEraser = true;
+            eraserBtn.classList.add('active');
+            brushBtn.classList.remove('active');
+            updateBrushPreview();
+        });
+
+        // 颜色选择
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            updateBrushPreview();
+        });
+
+        // 笔刷大小
+        brushSize.addEventListener('input', (e) => {
+            currentSize = e.target.value;
+            sizeDisplay.textContent = currentSize;
+            updateBrushPreview();
+        });
+
+        // 笔触类型
+        brushType.addEventListener('change', (e) => {
+            currentBrushType = e.target.value;
+            updateBrushPreview();
+        });
+
+        // 清空画布
+        clearBtn.addEventListener('click', () => {
+            if (confirm('确定要清空画布吗？')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+
+        // 保存图片
+        saveBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'drawing_' + new Date().getTime() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        // 初始化笔刷预览
+        updateBrushPreview();
+    </script>
+</body>
+</html>

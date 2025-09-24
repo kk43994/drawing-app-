@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>小新的画画板 🖍️</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Comic Sans MS", "微软雅黑", -apple-system, BlinkMacSystemFont, cursive, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background: linear-gradient(135deg, #FFE4E1 0%, #FFB6C1 25%, #FFA07A 50%, #FFE4B5 75%, #F0E68C 100%);
+            -webkit-user-select: none;
+            user-select: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-title {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            color: #FF6B6B;
+            font-size: 28px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.9);
+            padding: 8px 25px;
+            border-radius: 30px;
+            border: 3px solid #FF6B6B;
+            display: inline-block;
+        }
+
+        .header-title p {
+            margin: 5px 0 0 0;
+            color: #FF69B4;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* 语音提示弹窗 */
+        .voice-bubble {
+            position: fixed;
+            bottom: 170px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #FFE4E1, #FFCCCB);
+            border: 3px solid #FF6B6B;
+            border-radius: 20px;
+            padding: 15px 25px;
+            font-size: 16px;
+            color: #FF1493;
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .voice-bubble.show {
+            opacity: 1;
+            animation: bounce 0.5s ease-out;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateX(-50%) translateY(20px); }
+            50% { transform: translateX(-50%) translateY(-10px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+
+        .voice-bubble::before {
+            content: "🎤 小新说：";
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #FF69B4;
+        }
+
+        /* 压力指示器 */
+        .pressure-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #FF6B6B;
+            border-radius: 15px;
+            padding: 10px;
+            display: none;
+            z-index: 100;
+        }
+
+        .pressure-indicator.show {
+            display: block;
+        }
+
+        .pressure-bar {
+            width: 100px;
+            height: 10px;
+            background: #FFE4E1;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .pressure-fill {
+            height: 100%;
+            background: linear-gradient(to right, #66BB6A, #FFD700, #FF6B6B);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* 自定义笔刷面板 */
+        .custom-brush-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            border: 3px solid #FF6B6B;
+            border-radius: 20px;
+            padding: 20px;
+            display: none;
+            z-index: 1002;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .custom-brush-panel.show {
+            display: block;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .custom-brush-panel h3 {
+            color: #FF6B6B;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .custom-brush-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #FFF0F5;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .custom-brush-item:hover {
+            background: #FFE4E1;
+            transform: translateX(5px);
+        }
+
+        .custom-brush-preview {
+            display: inline-block;
+            width: 50px;
+            height: 30px;
+            margin-right: 10px;
+            border: 1px solid #FF6B6B;
+            border-radius: 5px;
+            vertical-align: middle;
+        }
+
+        .import-brush-btn {
+            background: linear-gradient(135deg, #9C27B0, #BA68C8);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+
+        .close-panel-btn {
+            background: linear-gradient(135deg, #FF6B6B, #FF4757);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            padding: 80px 20px 20px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 150px);
+        }
+
+        #canvas {
+            display: block;
+            background: white;
+            cursor: crosshair;
+            border: 4px solid #FF6B6B;
+            border-radius: 15px;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to right, #FFE4E1, #FFD700, #98FB98, #87CEEB, #DDA0DD);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+            padding: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-top: 3px solid #FF6B6B;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            border: 2px solid #FF6B6B;
+            border-radius: 20px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+        }
+
+        .tool-label {
+            font-size: 13px;
+            color: #FF6B6B;
+            margin-right: 6px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: 2px solid transparent;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #FFB347, #FF6B6B);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button.active {
+            background: linear-gradient(135deg, #FF1493, #FF69B4);
+            box-shadow: 0 4px 20px rgba(255, 20, 147, 0.4);
+            border: 2px solid #FFD700;
+        }
+
+        button[data-tool] {
+            background: linear-gradient(135deg, #66BB6A, #4CAF50);
+        }
+
+        button[data-tool].active {
+            background: linear-gradient(135deg, #FF1493, #FF69B4);
+            border: 2px solid #FFD700;
+        }
+
+        button.eraser {
+            background: linear-gradient(135deg, #FFA500, #FF8C00);
+        }
+
+        button.clear {
+            background: linear-gradient(135deg, #FF6B6B, #FF4757);
+        }
+
+        button.save {
+            background: linear-gradient(135deg, #9C27B0, #BA68C8);
+        }
+
+        button.undo, button.redo {
+            background: linear-gradient(135deg, #64B5F6, #42A5F5);
+        }
+
+        button.custom-brush {
+            background: linear-gradient(135deg, #E91E63, #F06292);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #FF6B6B;
+            border-radius: 50%;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        input[type="range"] {
+            width: 80px;
+            vertical-align: middle;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: linear-gradient(to right, #FFB347, #FF6B6B);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #FF6B6B;
+            border: 2px solid #FFD700;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .size-display {
+            font-size: 12px;
+            color: #FF6B6B;
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .brush-preview {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #FF6B6B;
+            border-radius: 50%;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 5px;
+            position: relative;
+            background: white;
+        }
+
+        .brush-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: #FF6B6B;
+        }
+
+        select {
+            padding: 5px 8px;
+            border: 2px solid #FF6B6B;
+            border-radius: 15px;
+            background: white;
+            color: #FF6B6B;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            font-size: 12px;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            padding: 5px 8px;
+            border: 2px solid #FF6B6B;
+            border-radius: 15px;
+            background: white;
+            color: #FF6B6B;
+            font-weight: bold;
+            outline: none;
+            font-size: 12px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* iPad专用优化 */
+        @supports (pointer: coarse) {
+            .toolbar {
+                padding-bottom: env(safe-area-inset-bottom, 12px);
+            }
+
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            input[type="range"] {
+                min-height: 44px;
+            }
+        }
+
+        /* iPad Pro适配 */
+        @media only screen
+        and (min-device-width: 1024px)
+        and (max-device-width: 1366px)
+        and (-webkit-min-device-pixel-ratio: 2) {
+            .toolbar {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            button {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            input[type="range"] {
+                width: 150px;
+            }
+
+            .tool-label {
+                font-size: 15px;
+            }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .header-title h1 {
+                font-size: 20px;
+                padding: 6px 20px;
+            }
+
+            .header-title p {
+                font-size: 12px;
+            }
+
+            .toolbar {
+                padding: 8px;
+                gap: 6px;
+            }
+
+            .tool-group {
+                padding: 4px 8px;
+            }
+
+            button {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .tool-label {
+                font-size: 11px;
+            }
+
+            input[type="range"] {
+                width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-title">
+        <h1>🖍️ 小新的画画板 🎨</h1>
+        <p>动感超人来画画啦！</p>
+    </div>
+
+    <!-- 压力指示器 -->
+    <div class="pressure-indicator" id="pressureIndicator">
+        <div style="font-size: 12px; color: #FF6B6B; font-weight: bold;">Apple Pencil压力</div>
+        <div class="pressure-bar">
+            <div class="pressure-fill" id="pressureFill"></div>
+        </div>
+        <div style="font-size: 11px; color: #666; margin-top: 5px;">
+            压力值: <span id="pressureValue">0%</span>
+        </div>
+    </div>
+
+    <!-- 语音提示 -->
+    <div class="voice-bubble" id="voiceBubble"></div>
+
+    <!-- 自定义笔刷面板 -->
+    <div class="custom-brush-panel" id="customBrushPanel">
+        <h3>🎨 自定义笔刷库</h3>
+        <div id="customBrushList">
+            <div class="custom-brush-item" data-brush="crayon">
+                <canvas class="custom-brush-preview" id="crayonPreview"></canvas>
+                <span>蜡笔效果</span>
+            </div>
+            <div class="custom-brush-item" data-brush="chalk">
+                <canvas class="custom-brush-preview" id="chalkPreview"></canvas>
+                <span>粉笔效果</span>
+            </div>
+            <div class="custom-brush-item" data-brush="oil">
+                <canvas class="custom-brush-preview" id="oilPreview"></canvas>
+                <span>油画效果</span>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <label for="brushImport" class="import-brush-btn">📁 导入笔刷</label>
+            <input type="file" id="brushImport" accept=".json,.brush">
+            <button class="close-panel-btn" onclick="closeCustomBrushPanel()">关闭</button>
+        </div>
+    </div>
+
+    <div class="canvas-wrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="toolbar">
+        <div class="tool-group">
+            <span class="tool-label">🖍️工具:</span>
+            <button id="brushBtn" class="active" data-tool="brush">✏️画笔</button>
+            <button id="eraserBtn" class="eraser" data-tool="eraser">🧹橡皮</button>
+            <button id="lineBtn" data-tool="line">📏直线</button>
+            <button id="rectBtn" data-tool="rect">⬜矩形</button>
+            <button id="circleBtn" data-tool="circle">⭕圆形</button>
+            <button id="fillBtn" data-tool="fill">🪣填充</button>
+            <button id="textBtn" data-tool="text">📝文字</button>
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">🎨颜色:</span>
+            <input type="color" id="colorPicker" value="#FF6B6B">
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">📐粗细:</span>
+            <input type="range" id="brushSize" min="1" max="50" value="5">
+            <span class="size-display" id="sizeDisplay">5</span>
+            <div class="brush-preview">
+                <div class="brush-dot" id="brushDot"></div>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">✨笔触:</span>
+            <select id="brushType">
+                <option value="round">圆形</option>
+                <option value="square">方形</option>
+                <option value="butt">平头</option>
+            </select>
+        </div>
+
+        <div class="tool-group">
+            <span class="tool-label">🌟效果:</span>
+            <select id="brushEffect">
+                <option value="normal">普通</option>
+                <option value="spray">喷雾</option>
+                <option value="marker">马克笔</option>
+                <option value="pencil">铅笔</option>
+                <option value="watercolor">水彩</option>
+                <option value="crayon">蜡笔</option>
+                <option value="chalk">粉笔</option>
+                <option value="oil">油画</option>
+            </select>
+        </div>
+
+        <div class="tool-group" id="textTools" style="display: none;">
+            <span class="tool-label">🔤字体:</span>
+            <select id="fontFamily">
+                <option value="Comic Sans MS">Comic Sans</option>
+                <option value="Arial">Arial</option>
+                <option value="微软雅黑">微软雅黑</option>
+            </select>
+            <input type="number" id="fontSize" min="8" max="200" value="30">
+            <span class="tool-label">px</span>
+        </div>
+
+        <button id="undoBtn" class="undo">⬅️撤销</button>
+        <button id="redoBtn" class="redo">➡️重做</button>
+        <button id="customBrushBtn" class="custom-brush">🎨笔刷库</button>
+        <button id="clearBtn" class="clear">🗑️清空</button>
+        <button id="saveBtn" class="save">💾保存</button>
+    </div>
+
+    <script>
+        // 小新的语音提示语句库
+        const shinchanVoices = {
+            brush: ["要开始画画咯~", "动感超人画笔，变身！", "小新要画美女姐姐~", "妈妈说要好好画画哦"],
+            eraser: ["橡皮擦擦擦~", "把不好看的都擦掉！", "妈妈的拳头像橡皮擦", "擦掉重新画！"],
+            line: ["画一条直直的线！", "像动感超人的激光！", "比妈妈的眉毛还直！", "嗖~一条线！"],
+            rect: ["画个方方的盒子！", "像小白的狗窝！", "方方正正最好看", "动感方块！"],
+            circle: ["画个圆圆的圈圈！", "像妈妈生气的眼睛", "圆滚滚像小葵", "完美的圆形！"],
+            fill: ["倒颜料咯~", "哗啦啦填满它！", "像洒了果汁一样", "填充完成！"],
+            text: ["写字时间到！", "小新也会写字哦", "要写什么呢？", "写个动感超人！"],
+            clear: ["全部清空！重新开始！", "哇，都没了~", "像新的一样！", "妈妈要生气了，赶紧清空！"],
+            save: ["保存小新的大作！", "要给妈妈看看~", "动感超人认证作品！", "保存成功啦！"],
+            undo: ["啊，画错了，退回去！", "时光倒流术！", "回到刚才！", "撤销撤销~"],
+            redo: ["重新做一遍！", "再来一次！", "恢复刚才的！", "动感恢复术！"]
+        };
+
+        // 显示小新语音提示
+        function showShinchanVoice(tool) {
+            const bubble = document.getElementById('voiceBubble');
+            const voices = shinchanVoices[tool];
+            if (voices) {
+                const randomVoice = voices[Math.floor(Math.random() * voices.length)];
+                bubble.textContent = randomVoice;
+                bubble.classList.add('show');
+
+                // 播放语音（使用Web Speech API）
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(randomVoice);
+                    utterance.lang = 'zh-CN';
+                    utterance.rate = 1.2;
+                    utterance.pitch = 1.5; // 调高音调模拟小孩声音
+                    speechSynthesis.speak(utterance);
+                }
+
+                setTimeout(() => {
+                    bubble.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const brushType = document.getElementById('brushType');
+        const brushDot = document.getElementById('brushDot');
+        const brushEffect = document.getElementById('brushEffect');
+        const customBrushBtn = document.getElementById('customBrushBtn');
+
+        let isDrawing = false;
+        let currentColor = '#FF6B6B';
+        let currentSize = 5;
+        let currentBrushType = 'round';
+        let currentBrushEffect = 'normal';
+        let history = [];
+        let historyStep = -1;
+        let currentTool = 'brush';
+        let startX, startY;
+        let lastX = 0;
+        let lastY = 0;
+        let isTyping = false;
+        let textInput = null;
+        let currentPressure = 0;
+        let customBrushes = {};
+
+        // 设置画布大小
+        function resizeCanvas() {
+            const wrapper = document.querySelector('.canvas-wrapper');
+            const rect = wrapper.getBoundingClientRect();
+            const maxWidth = rect.width - 40;
+            const maxHeight = rect.height - 40;
+
+            // iPad优化尺寸
+            const isIPad = /iPad|Macintosh/i.test(navigator.userAgent) && 'ontouchend' in document;
+            if (isIPad) {
+                canvas.width = Math.min(maxWidth, 1024);
+                canvas.height = Math.min(maxHeight, 768);
+            } else {
+                canvas.width = Math.min(maxWidth, 1000);
+                canvas.height = Math.min(maxHeight, 600);
+            }
+
+            // 重新设置画笔属性
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 初始化自定义笔刷预览
+        function initCustomBrushPreviews() {
+            // 蜡笔预览
+            const crayonCanvas = document.getElementById('crayonPreview');
+            const crayonCtx = crayonCanvas.getContext('2d');
+            crayonCanvas.width = 50;
+            crayonCanvas.height = 30;
+            crayonCtx.strokeStyle = '#FF6B6B';
+            crayonCtx.lineWidth = 3;
+            crayonCtx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                crayonCtx.moveTo(10 + i * 8, 10);
+                crayonCtx.lineTo(10 + i * 8, 20);
+            }
+            crayonCtx.stroke();
+
+            // 粉笔预览
+            const chalkCanvas = document.getElementById('chalkPreview');
+            const chalkCtx = chalkCanvas.getContext('2d');
+            chalkCanvas.width = 50;
+            chalkCanvas.height = 30;
+            chalkCtx.fillStyle = '#87CEEB';
+            for (let i = 0; i < 20; i++) {
+                chalkCtx.fillRect(
+                    Math.random() * 40 + 5,
+                    Math.random() * 20 + 5,
+                    2, 2
+                );
+            }
+
+            // 油画预览
+            const oilCanvas = document.getElementById('oilPreview');
+            const oilCtx = oilCanvas.getContext('2d');
+            oilCanvas.width = 50;
+            oilCanvas.height = 30;
+            const gradient = oilCtx.createLinearGradient(0, 0, 50, 30);
+            gradient.addColorStop(0, '#FFD700');
+            gradient.addColorStop(1, '#FF6B6B');
+            oilCtx.fillStyle = gradient;
+            oilCtx.fillRect(5, 5, 40, 20);
+        }
+
+        initCustomBrushPreviews();
+
+        // 保存初始状态
+        saveHistory();
+
+        // 更新笔刷预览
+        function updateBrushPreview() {
+            const size = Math.min(currentSize * (1 + currentPressure), 20);
+            brushDot.style.width = size + 'px';
+            brushDot.style.height = size + 'px';
+            brushDot.style.background = currentTool === 'eraser' ? '#FF9800' : currentColor;
+
+            if (currentBrushType === 'square') {
+                brushDot.style.borderRadius = '0';
+            } else {
+                brushDot.style.borderRadius = '50%';
+            }
+        }
+
+        // 获取触摸位置和压力
+        function getPositionAndPressure(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let x, y, pressure = 1.0;
+
+            if (e.touches && e.touches.length > 0) {
+                x = (e.touches[0].clientX - rect.left) * scaleX;
+                y = (e.touches[0].clientY - rect.top) * scaleY;
+
+                // Apple Pencil压力检测
+                if (e.touches[0].force !== undefined && e.touches[0].force > 0) {
+                    pressure = e.touches[0].force;
+                    // 显示压力指示器
+                    document.getElementById('pressureIndicator').classList.add('show');
+                    document.getElementById('pressureFill').style.width = (pressure * 100) + '%';
+                    document.getElementById('pressureValue').textContent = Math.round(pressure * 100) + '%';
+                }
+
+                // iPad Pro的倾斜角度检测
+                if (e.touches[0].altitudeAngle !== undefined) {
+                    const tilt = e.touches[0].altitudeAngle;
+                    // 可以根据倾斜角度调整笔触效果
+                }
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                x = (e.changedTouches[0].clientX - rect.left) * scaleX;
+                y = (e.changedTouches[0].clientY - rect.top) * scaleY;
+            } else {
+                x = (e.clientX - rect.left) * scaleX;
+                y = (e.clientY - rect.top) * scaleY;
+            }
+
+            currentPressure = pressure;
+            return { x, y, pressure };
+        }
+
+        // 保存历史记录
+        function saveHistory() {
+            historyStep++;
+            if (historyStep < history.length) {
+                history.length = historyStep;
+            }
+            history.push(canvas.toDataURL());
+
+            if (history.length > 50) {
+                history.shift();
+                historyStep--;
+            }
+
+            updateUndoRedoButtons();
+        }
+
+        // 更新撤销重做按钮
+        function updateUndoRedoButtons() {
+            document.getElementById('undoBtn').disabled = historyStep <= 0;
+            document.getElementById('redoBtn').disabled = historyStep >= history.length - 1;
+        }
+
+        // 撤销
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    updateUndoRedoButtons();
+                };
+            }
+        }
+
+        // 重做
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    updateUndoRedoButtons();
+                };
+            }
+        }
+
+        // 特殊笔刷效果
+        function drawWithCustomBrush(pos, pressure) {
+            const adjustedSize = currentSize * (0.5 + pressure * 0.5);
+
+            switch (currentBrushEffect) {
+                case 'crayon':
+                    // 蜡笔效果
+                    ctx.globalAlpha = 0.6;
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = adjustedSize;
+                    // 添加纹理
+                    for (let i = 0; i < 3; i++) {
+                        ctx.globalAlpha = 0.3 - i * 0.1;
+                        ctx.lineWidth = adjustedSize + i * 2;
+                        ctx.lineTo(pos.x + Math.random() * 2 - 1, pos.y + Math.random() * 2 - 1);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y);
+                    }
+                    ctx.globalAlpha = 1.0;
+                    break;
+
+                case 'chalk':
+                    // 粉笔效果
+                    const chalkSize = adjustedSize * 2;
+                    for (let i = 0; i < 10 * pressure; i++) {
+                        const offsetX = (Math.random() - 0.5) * chalkSize;
+                        const offsetY = (Math.random() - 0.5) * chalkSize;
+                        const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                        if (distance < chalkSize / 2) {
+                            ctx.fillStyle = currentColor;
+                            ctx.globalAlpha = 0.1 + Math.random() * 0.2;
+                            ctx.fillRect(pos.x + offsetX, pos.y + offsetY, 1 + Math.random(), 1 + Math.random());
+                        }
+                    }
+                    ctx.globalAlpha = 1.0;
+                    break;
+
+                case 'oil':
+                    // 油画效果
+                    ctx.globalAlpha = 0.8;
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = adjustedSize * 3;
+                    ctx.shadowBlur = adjustedSize / 2;
+                    ctx.shadowColor = currentColor;
+                    // 混合颜色
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.shadowBlur = 0;
+                    ctx.globalAlpha = 1.0;
+                    break;
+
+                default:
+                    // 默认画笔
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = adjustedSize;
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                    break;
+            }
+        }
+
+        // 填充功能
+        function floodFill(x, y, fillColor) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const targetColor = getPixelColor(imageData, x, y);
+
+            if (colorsMatch(targetColor, hexToRgba(fillColor))) return;
+
+            const pixelsToCheck = [x, y];
+            const width = canvas.width;
+            const height = canvas.height;
+
+            while (pixelsToCheck.length > 0) {
+                const y = pixelsToCheck.pop();
+                const x = pixelsToCheck.pop();
+
+                const currentColor = getPixelColor(imageData, x, y);
+                if (colorsMatch(currentColor, targetColor)) {
+                    setPixelColor(imageData, x, y, hexToRgba(fillColor));
+
+                    if (x > 0) pixelsToCheck.push(x - 1, y);
+                    if (x < width - 1) pixelsToCheck.push(x + 1, y);
+                    if (y > 0) pixelsToCheck.push(x, y - 1);
+                    if (y < height - 1) pixelsToCheck.push(x, y + 1);
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function getPixelColor(imageData, x, y) {
+            const index = (y * imageData.width + x) * 4;
+            return {
+                r: imageData.data[index],
+                g: imageData.data[index + 1],
+                b: imageData.data[index + 2],
+                a: imageData.data[index + 3]
+            };
+        }
+
+        function setPixelColor(imageData, x, y, color) {
+            const index = (y * imageData.width + x) * 4;
+            imageData.data[index] = color.r;
+            imageData.data[index + 1] = color.g;
+            imageData.data[index + 2] = color.b;
+            imageData.data[index + 3] = color.a;
+        }
+
+        function colorsMatch(c1, c2, tolerance = 0) {
+            return Math.abs(c1.r - c2.r) <= tolerance &&
+                   Math.abs(c1.g - c2.g) <= tolerance &&
+                   Math.abs(c1.b - c2.b) <= tolerance &&
+                   Math.abs(c1.a - c2.a) <= tolerance;
+        }
+
+        function hexToRgba(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return { r, g, b, a: 255 };
+        }
+
+        // 创建文字输入
+        function createTextInput(x, y) {
+            if (textInput) {
+                textInput.remove();
+            }
+
+            textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.style.position = 'absolute';
+            textInput.style.left = x + 'px';
+            textInput.style.top = y + 'px';
+            textInput.style.fontSize = document.getElementById('fontSize').value + 'px';
+            textInput.style.fontFamily = document.getElementById('fontFamily').value;
+            textInput.style.color = currentColor;
+            textInput.style.background = 'transparent';
+            textInput.style.border = '1px dashed #666';
+            textInput.style.outline = 'none';
+            textInput.style.zIndex = '1000';
+
+            document.body.appendChild(textInput);
+            textInput.focus();
+
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const text = textInput.value;
+                    if (text) {
+                        const rect = canvas.getBoundingClientRect();
+                        const pos = getPositionAndPressure({ clientX: x, clientY: y });
+                        ctx.font = `${document.getElementById('fontSize').value}px ${document.getElementById('fontFamily').value}`;
+                        ctx.fillStyle = currentColor;
+                        ctx.fillText(text, pos.x, pos.y);
+                        saveHistory();
+                    }
+                    textInput.remove();
+                    textInput = null;
+                    isTyping = false;
+                }
+                if (e.key === 'Escape') {
+                    textInput.remove();
+                    textInput = null;
+                    isTyping = false;
+                }
+            });
+        }
+
+        // 开始绘制
+        function startDrawing(e) {
+            e.preventDefault();
+
+            const pos = getPositionAndPressure(e);
+            startX = pos.x;
+            startY = pos.y;
+
+            if (currentTool === 'text') {
+                const rect = canvas.getBoundingClientRect();
+                createTextInput(
+                    (e.clientX || (e.touches && e.touches[0].clientX)),
+                    (e.clientY || (e.touches && e.touches[0].clientY))
+                );
+                isTyping = true;
+                return;
+            }
+
+            if (currentTool === 'fill') {
+                floodFill(Math.floor(pos.x), Math.floor(pos.y), currentColor);
+                saveHistory();
+                return;
+            }
+
+            isDrawing = true;
+
+            if (currentTool === 'brush' || currentTool === 'eraser') {
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                lastX = pos.x;
+                lastY = pos.y;
+            }
+        }
+
+        // 绘制
+        function draw(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+
+            const pos = getPositionAndPressure(e);
+
+            // 根据压力调整画笔大小
+            const pressureAdjustedSize = currentSize * (0.3 + pos.pressure * 0.7);
+            ctx.lineWidth = pressureAdjustedSize;
+            ctx.lineCap = currentBrushType;
+            ctx.lineJoin = currentBrushType === 'square' ? 'miter' : 'round';
+
+            switch (currentTool) {
+                case 'brush':
+                    ctx.globalCompositeOperation = 'source-over';
+
+                    // 使用自定义笔刷或标准笔刷
+                    if (['crayon', 'chalk', 'oil'].includes(currentBrushEffect)) {
+                        drawWithCustomBrush(pos, pos.pressure);
+                    } else {
+                        switch (currentBrushEffect) {
+                            case 'spray':
+                                ctx.globalAlpha = 0.1;
+                                for (let i = 0; i < 20 * pos.pressure; i++) {
+                                    const offsetX = (Math.random() - 0.5) * pressureAdjustedSize * 2;
+                                    const offsetY = (Math.random() - 0.5) * pressureAdjustedSize * 2;
+                                    ctx.fillStyle = currentColor;
+                                    ctx.fillRect(pos.x + offsetX, pos.y + offsetY, 1, 1);
+                                }
+                                ctx.globalAlpha = 1.0;
+                                break;
+
+                            case 'marker':
+                                ctx.globalAlpha = 0.4 + pos.pressure * 0.2;
+                                ctx.globalCompositeOperation = 'multiply';
+                                ctx.strokeStyle = currentColor;
+                                ctx.lineWidth = pressureAdjustedSize * 2;
+                                ctx.lineTo(pos.x, pos.y);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(pos.x, pos.y);
+                                ctx.globalAlpha = 1.0;
+                                ctx.globalCompositeOperation = 'source-over';
+                                break;
+
+                            case 'pencil':
+                                ctx.strokeStyle = currentColor;
+                                ctx.globalAlpha = 0.6 + pos.pressure * 0.2;
+                                ctx.lineWidth = pressureAdjustedSize * 0.5;
+                                const distance = Math.sqrt(Math.pow(pos.x - lastX, 2) + Math.pow(pos.y - lastY, 2));
+                                const angle = Math.atan2(pos.y - lastY, pos.x - lastX);
+
+                                for (let i = 0; i < distance; i += 0.5) {
+                                    const x = lastX + Math.cos(angle) * i + (Math.random() - 0.5) * 0.5;
+                                    const y = lastY + Math.sin(angle) * i + (Math.random() - 0.5) * 0.5;
+                                    ctx.fillStyle = currentColor;
+                                    ctx.fillRect(x, y, 1, 1);
+                                }
+                                ctx.globalAlpha = 1.0;
+                                lastX = pos.x;
+                                lastY = pos.y;
+                                break;
+
+                            case 'watercolor':
+                                ctx.globalAlpha = 0.2 + pos.pressure * 0.1;
+                                ctx.strokeStyle = currentColor;
+                                ctx.lineWidth = pressureAdjustedSize * 3;
+                                ctx.shadowBlur = pressureAdjustedSize;
+                                ctx.shadowColor = currentColor;
+                                ctx.lineTo(pos.x, pos.y);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(pos.x, pos.y);
+                                ctx.shadowBlur = 0;
+                                ctx.globalAlpha = 1.0;
+                                break;
+
+                            default:
+                                ctx.strokeStyle = currentColor;
+                                ctx.lineTo(pos.x, pos.y);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(pos.x, pos.y);
+                                break;
+                        }
+                    }
+                    break;
+
+                case 'eraser':
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                    break;
+
+                case 'line':
+                    redrawCanvas();
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                    break;
+
+                case 'rect':
+                    redrawCanvas();
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                    ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY);
+                    break;
+
+                case 'circle':
+                    redrawCanvas();
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                    ctx.beginPath();
+                    const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                    ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    break;
+            }
+
+            updateBrushPreview();
+        }
+
+        // 重绘画布
+        function redrawCanvas() {
+            if (historyStep >= 0) {
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+            }
+        }
+
+        // 停止绘制
+        function stopDrawing(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctx.beginPath();
+
+            if (currentTool !== 'fill') {
+                saveHistory();
+            }
+
+            // 隐藏压力指示器
+            setTimeout(() => {
+                document.getElementById('pressureIndicator').classList.remove('show');
+            }, 1000);
+        }
+
+        // 鼠标事件
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // 触摸事件（支持Apple Pencil）
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
+
+        // 防止页面滚动
+        document.addEventListener('touchmove', function(e) {
+            if (e.target === canvas) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // 防止手掌误触（iPad）
+        canvas.addEventListener('touchstart', function(e) {
+            // 只接受单点触摸或Apple Pencil
+            if (e.touches.length > 1) {
+                e.preventDefault();
+                return false;
+            }
+        }, { passive: false });
+
+        // 工具切换
+        document.querySelectorAll('button[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('button[data-tool]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = btn.dataset.tool;
+
+                // 播放小新语音
+                showShinchanVoice(currentTool);
+
+                // 显示/隐藏文字工具栏
+                const textTools = document.getElementById('textTools');
+                if (currentTool === 'text') {
+                    textTools.style.display = 'flex';
+                } else {
+                    textTools.style.display = 'none';
+                }
+
+                updateBrushPreview();
+            });
+        });
+
+        // 撤销和重做
+        document.getElementById('undoBtn').addEventListener('click', () => {
+            undo();
+            showShinchanVoice('undo');
+        });
+
+        document.getElementById('redoBtn').addEventListener('click', () => {
+            redo();
+            showShinchanVoice('redo');
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        // 颜色选择
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            updateBrushPreview();
+        });
+
+        // 画笔大小
+        brushSize.addEventListener('input', (e) => {
+            currentSize = e.target.value;
+            sizeDisplay.textContent = currentSize;
+            updateBrushPreview();
+        });
+
+        // 笔触类型
+        brushType.addEventListener('change', (e) => {
+            currentBrushType = e.target.value;
+            updateBrushPreview();
+        });
+
+        // 画笔效果
+        brushEffect.addEventListener('change', (e) => {
+            currentBrushEffect = e.target.value;
+        });
+
+        // 自定义笔刷面板
+        customBrushBtn.addEventListener('click', () => {
+            document.getElementById('customBrushPanel').classList.add('show');
+        });
+
+        // 关闭自定义笔刷面板
+        function closeCustomBrushPanel() {
+            document.getElementById('customBrushPanel').classList.remove('show');
+        }
+
+        // 选择自定义笔刷
+        document.querySelectorAll('.custom-brush-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const brushName = item.dataset.brush;
+                document.getElementById('brushEffect').value = brushName;
+                currentBrushEffect = brushName;
+                closeCustomBrushPanel();
+                showShinchanVoice('brush');
+            });
+        });
+
+        // 导入自定义笔刷
+        document.getElementById('brushImport').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const brushData = JSON.parse(event.target.result);
+                        // 处理导入的笔刷数据
+                        customBrushes[brushData.name] = brushData;
+                        alert(`成功导入笔刷：${brushData.name}`);
+                        // 添加到笔刷列表
+                        const newOption = document.createElement('option');
+                        newOption.value = brushData.name;
+                        newOption.textContent = brushData.name;
+                        document.getElementById('brushEffect').appendChild(newOption);
+                    } catch (error) {
+                        alert('导入笔刷失败，请检查文件格式');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // 清空画布
+        clearBtn.addEventListener('click', () => {
+            if (confirm('小新要把画画都擦掉咯，确定吗？🎨')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                saveHistory();
+                showShinchanVoice('clear');
+            }
+        });
+
+        // 保存图片
+        saveBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = '小新的画作_' + new Date().getTime() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            showShinchanVoice('save');
+        });
+
+        // 初始化笔刷预览
+        updateBrushPreview();
+    </script>
+</body>
+</html>

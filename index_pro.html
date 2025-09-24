@@ -1,0 +1,3188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>小新画画板 Pro - 专业版 🎨</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #FF6B6B;
+            --secondary-color: #4ECDC4;
+            --accent-color: #FFE66D;
+            --dark-bg: #2C3E50;
+            --light-bg: #ECF0F1;
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-user-select: none;
+            user-select: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 顶部工具栏 */
+        .top-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tool-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 0 15px;
+            border-left: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .tool-section:first-child {
+            border-left: none;
+        }
+
+        /* 左侧工具面板 */
+        .left-panel {
+            position: fixed;
+            left: 0;
+            top: 60px;
+            bottom: 0;
+            width: 80px;
+            background: var(--panel-bg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px 10px;
+            z-index: 999;
+            overflow-y: auto;
+        }
+
+        .tool-btn {
+            width: 60px;
+            height: 60px;
+            border: 2px solid transparent;
+            border-radius: var(--radius);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-color: var(--primary-color);
+        }
+
+        .tool-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tool-btn .icon {
+            font-size: 24px;
+        }
+
+        .tool-btn .label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* 右侧属性面板 */
+        .right-panel {
+            position: fixed;
+            right: 0;
+            top: 60px;
+            bottom: 0;
+            width: 280px;
+            background: var(--panel-bg);
+            box-shadow: var(--shadow);
+            z-index: 999;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section {
+            background: white;
+            border-radius: var(--radius);
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 画布容器 */
+        .canvas-container {
+            position: fixed;
+            left: 80px;
+            right: 280px;
+            top: 60px;
+            bottom: 0;
+            overflow: hidden;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .canvas-viewport {
+            position: relative;
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            transform-origin: center center;
+        }
+
+        #mainCanvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* 图层面板 */
+        .layers-panel {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layer-item:hover {
+            background: #e9ecef;
+        }
+
+        .layer-item.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid #667eea;
+        }
+
+        .layer-thumbnail {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .layer-info {
+            flex: 1;
+        }
+
+        .layer-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .layer-opacity {
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .layer-control-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .layer-control-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* 笔刷预设 */
+        .brush-presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .brush-preset {
+            aspect-ratio: 1;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .brush-preset:hover {
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .brush-preset.active {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .brush-preset canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 色彩选择器 */
+        .color-picker-advanced {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .color-mode-tabs {
+            display: flex;
+            gap: 5px;
+            background: #f1f3f4;
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .color-mode-tab {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .color-mode-tab.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .color-wheel {
+            width: 100%;
+            height: 200px;
+            border-radius: 50%;
+            position: relative;
+            margin: 10px auto;
+        }
+
+        .color-slider {
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .color-input-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .color-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .color-input label {
+            font-size: 10px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .color-input input {
+            padding: 4px 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* 笔刷参数控制 */
+        .brush-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            font-size: 11px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #e9ecef;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 对称模式控制 */
+        .symmetry-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .symmetry-mode {
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .symmetry-mode:hover {
+            border-color: var(--primary-color);
+        }
+
+        .symmetry-mode.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        }
+
+        .symmetry-mode .icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .symmetry-mode .name {
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        /* 浮动工具提示 */
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        /* 快捷键提示 */
+        .shortcut-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .shortcut-hint.show {
+            display: block;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* 加载动画 */
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 10000;
+        }
+
+        .loader.show {
+            display: block;
+        }
+
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .right-panel {
+                width: 240px;
+            }
+
+            .left-panel {
+                width: 60px;
+            }
+
+            .tool-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .tool-btn .icon {
+                font-size: 20px;
+            }
+
+            .tool-btn .label {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .right-panel {
+                position: fixed;
+                right: -280px;
+                transition: right 0.3s;
+            }
+
+            .right-panel.open {
+                right: 0;
+            }
+
+            .canvas-container {
+                right: 0;
+            }
+        }
+
+        /* 高级混合模式选择器 */
+        .blend-mode-selector {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 12px;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* 渐变编辑器 */
+        .gradient-editor {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .gradient-preview {
+            height: 40px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .gradient-stops {
+            position: relative;
+            height: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            background: linear-gradient(to right, #000, #fff);
+            cursor: pointer;
+        }
+
+        .gradient-stop {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .gradient-stop.active {
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        /* 透视网格覆盖层 */
+        .perspective-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* 参考图片窗口 */
+        .reference-window {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .reference-window.active {
+            display: block;
+        }
+
+        .reference-header {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reference-content {
+            padding: 10px;
+            height: calc(100% - 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reference-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* 历史记录时间轴 */
+        .history-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+        }
+
+        .history-item.current {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-left: 3px solid #667eea;
+        }
+
+        .history-thumbnail {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-action {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .history-time {
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        /* 自定义光标 */
+        .custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+        }
+
+        .cursor-ring {
+            border: 2px solid rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+
+        /* 性能监视器 */
+        .performance-monitor {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 5px;
+            border-radius: 4px;
+            display: none;
+            z-index: 10000;
+        }
+
+        .performance-monitor.show {
+            display: block;
+        }
+
+        /* 云端同步状态 */
+        .sync-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+
+        .sync-status.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .sync-icon {
+            width: 16px;
+            height: 16px;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部工具栏 -->
+    <div class="top-toolbar">
+        <div class="logo">
+            <span>🎨</span>
+            <span>小新画画板 Pro</span>
+        </div>
+
+        <div class="tool-section">
+            <button class="tool-action" id="newFileBtn" title="新建 (Ctrl+N)">📄 新建</button>
+            <button class="tool-action" id="openFileBtn" title="打开 (Ctrl+O)">📁 打开</button>
+            <button class="tool-action" id="saveFileBtn" title="保存 (Ctrl+S)">💾 保存</button>
+            <button class="tool-action" id="exportBtn" title="导出">📤 导出</button>
+        </div>
+
+        <div class="tool-section">
+            <button class="tool-action" id="undoBtn" title="撤销 (Ctrl+Z)">↶</button>
+            <button class="tool-action" id="redoBtn" title="重做 (Ctrl+Y)">↷</button>
+            <span class="history-count">历史: <span id="historyCount">0/∞</span></span>
+        </div>
+
+        <div class="tool-section">
+            <label>缩放: <span id="zoomLevel">100%</span></label>
+            <input type="range" id="zoomSlider" min="10" max="500" value="100" style="width: 100px;">
+            <button class="tool-action" id="fitToScreenBtn" title="适应屏幕">⊡</button>
+        </div>
+
+        <div class="tool-section" style="margin-left: auto;">
+            <button class="tool-action" id="settingsBtn">⚙️ 设置</button>
+            <button class="tool-action" id="helpBtn">❓ 帮助</button>
+        </div>
+    </div>
+
+    <!-- 左侧工具面板 -->
+    <div class="left-panel">
+        <div class="tool-btn active" data-tool="brush" title="画笔工具 (B)">
+            <span class="icon">✏️</span>
+            <span class="label">画笔</span>
+        </div>
+        <div class="tool-btn" data-tool="eraser" title="橡皮擦 (E)">
+            <span class="icon">🧹</span>
+            <span class="label">橡皮</span>
+        </div>
+        <div class="tool-btn" data-tool="eyedropper" title="吸管工具 (I)">
+            <span class="icon">💉</span>
+            <span class="label">吸管</span>
+        </div>
+        <div class="tool-btn" data-tool="fill" title="填充工具 (G)">
+            <span class="icon">🪣</span>
+            <span class="label">填充</span>
+        </div>
+        <div class="tool-btn" data-tool="gradient" title="渐变工具 (G)">
+            <span class="icon">🌈</span>
+            <span class="label">渐变</span>
+        </div>
+        <div class="tool-btn" data-tool="shape" title="形状工具 (U)">
+            <span class="icon">⬜</span>
+            <span class="label">形状</span>
+        </div>
+        <div class="tool-btn" data-tool="text" title="文字工具 (T)">
+            <span class="icon">📝</span>
+            <span class="label">文字</span>
+        </div>
+        <div class="tool-btn" data-tool="select" title="选择工具 (M)">
+            <span class="icon">⬚</span>
+            <span class="label">选择</span>
+        </div>
+        <div class="tool-btn" data-tool="transform" title="变换工具 (Ctrl+T)">
+            <span class="icon">🔄</span>
+            <span class="label">变换</span>
+        </div>
+        <div class="tool-btn" data-tool="symmetry" title="对称绘制 (Y)">
+            <span class="icon">🔮</span>
+            <span class="label">对称</span>
+        </div>
+        <div class="tool-btn" data-tool="perspective" title="透视标尺 (P)">
+            <span class="icon">📐</span>
+            <span class="label">透视</span>
+        </div>
+        <div class="tool-btn" data-tool="reference" title="参考图片 (R)">
+            <span class="icon">🖼️</span>
+            <span class="label">参考</span>
+        </div>
+    </div>
+
+    <!-- 画布容器 -->
+    <div class="canvas-container" id="canvasContainer">
+        <div class="canvas-viewport" id="canvasViewport">
+            <canvas id="mainCanvas"></canvas>
+            <canvas id="perspectiveOverlay" class="perspective-overlay" style="display: none;"></canvas>
+            <div class="custom-cursor" id="customCursor" style="display: none;">
+                <div class="cursor-ring" id="cursorRing"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧属性面板 -->
+    <div class="right-panel">
+        <!-- 图层面板 -->
+        <div class="panel-section">
+            <div class="panel-title">
+                <span>📚</span>
+                <span>图层</span>
+                <button style="margin-left: auto;" id="addLayerBtn">➕</button>
+            </div>
+            <div class="layers-panel" id="layersPanel">
+                <!-- 动态生成图层列表 -->
+            </div>
+            <div style="margin-top: 10px;">
+                <label style="font-size: 11px;">混合模式:</label>
+                <select class="blend-mode-selector" id="blendModeSelect">
+                    <option value="normal">正常</option>
+                    <option value="multiply">正片叠底</option>
+                    <option value="screen">滤色</option>
+                    <option value="overlay">叠加</option>
+                    <option value="soft-light">柔光</option>
+                    <option value="hard-light">强光</option>
+                    <option value="color-dodge">颜色减淡</option>
+                    <option value="color-burn">颜色加深</option>
+                    <option value="darken">变暗</option>
+                    <option value="lighten">变亮</option>
+                    <option value="difference">差值</option>
+                    <option value="exclusion">排除</option>
+                    <option value="hue">色相</option>
+                    <option value="saturation">饱和度</option>
+                    <option value="color">颜色</option>
+                    <option value="luminosity">明度</option>
+                </select>
+                <div style="margin-top: 8px;">
+                    <label style="font-size: 11px;">不透明度: <span id="layerOpacityValue">100%</span></label>
+                    <input type="range" class="slider" id="layerOpacitySlider" min="0" max="100" value="100">
+                </div>
+            </div>
+        </div>
+
+        <!-- 笔刷设置 -->
+        <div class="panel-section" id="brushSettings">
+            <div class="panel-title">
+                <span>🖌️</span>
+                <span>笔刷设置</span>
+            </div>
+
+            <!-- 笔刷预设 -->
+            <div class="brush-presets" id="brushPresets">
+                <!-- 动态生成笔刷预设 -->
+            </div>
+
+            <!-- 笔刷参数 -->
+            <div class="brush-controls" style="margin-top: 15px;">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>大小</span>
+                        <span class="control-value" id="brushSizeValue">10px</span>
+                    </div>
+                    <input type="range" class="slider" id="brushSizeSlider" min="1" max="500" value="10">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>硬度</span>
+                        <span class="control-value" id="brushHardnessValue">100%</span>
+                    </div>
+                    <input type="range" class="slider" id="brushHardnessSlider" min="0" max="100" value="100">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>流量</span>
+                        <span class="control-value" id="brushFlowValue">100%</span>
+                    </div>
+                    <input type="range" class="slider" id="brushFlowSlider" min="1" max="100" value="100">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>间距</span>
+                        <span class="control-value" id="brushSpacingValue">25%</span>
+                    </div>
+                    <input type="range" class="slider" id="brushSpacingSlider" min="1" max="200" value="25">
+                </div>
+            </div>
+
+            <!-- 动态设置 -->
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px; font-weight: 600;">压力感应:</label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="pressureSize" checked> 控制大小
+                    </label>
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="pressureOpacity" checked> 控制不透明度
+                    </label>
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="pressureFlow"> 控制流量
+                    </label>
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="pressureHardness"> 控制硬度
+                    </label>
+                </div>
+            </div>
+
+            <!-- 倾斜感应 -->
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px; font-weight: 600;">倾斜感应:</label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="tiltAngle"> 控制角度
+                    </label>
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="tiltShape"> 控制形状
+                    </label>
+                </div>
+            </div>
+
+            <!-- 速度感应 -->
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px; font-weight: 600;">速度感应:</label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="velocitySize"> 控制大小
+                    </label>
+                    <label style="font-size: 11px;">
+                        <input type="checkbox" id="velocitySmooth"> 平滑处理
+                    </label>
+                </div>
+            </div>
+
+            <!-- 纹理设置 -->
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px; font-weight: 600;">纹理:</label>
+                <select style="width: 100%; margin-top: 8px; padding: 6px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 12px;" id="brushTexture">
+                    <option value="none">无</option>
+                    <option value="canvas">画布纹理</option>
+                    <option value="paper">纸张纹理</option>
+                    <option value="watercolor">水彩纸</option>
+                    <option value="rough">粗糙表面</option>
+                    <option value="custom">自定义...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 颜色面板 -->
+        <div class="panel-section">
+            <div class="panel-title">
+                <span>🎨</span>
+                <span>颜色</span>
+            </div>
+
+            <div class="color-picker-advanced">
+                <!-- 颜色模式切换 -->
+                <div class="color-mode-tabs">
+                    <button class="color-mode-tab active" data-mode="rgb">RGB</button>
+                    <button class="color-mode-tab" data-mode="hsl">HSL</button>
+                    <button class="color-mode-tab" data-mode="lab">Lab</button>
+                    <button class="color-mode-tab" data-mode="cmyk">CMYK</button>
+                </div>
+
+                <!-- 颜色轮 -->
+                <canvas id="colorWheel" class="color-wheel"></canvas>
+
+                <!-- 颜色值输入 -->
+                <div class="color-input-group" id="rgbInputs">
+                    <div class="color-input">
+                        <label>R</label>
+                        <input type="number" id="colorR" min="0" max="255" value="255">
+                    </div>
+                    <div class="color-input">
+                        <label>G</label>
+                        <input type="number" id="colorG" min="0" max="255" value="107">
+                    </div>
+                    <div class="color-input">
+                        <label>B</label>
+                        <input type="number" id="colorB" min="0" max="255" value="107">
+                    </div>
+                </div>
+
+                <!-- 最近使用的颜色 -->
+                <div style="margin-top: 15px;">
+                    <label style="font-size: 11px; font-weight: 600;">最近使用:</label>
+                    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 8px;" id="recentColors">
+                        <!-- 动态生成最近颜色 -->
+                    </div>
+                </div>
+
+                <!-- 色板 -->
+                <div style="margin-top: 15px;">
+                    <label style="font-size: 11px; font-weight: 600;">色板:</label>
+                    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 8px;" id="colorPalette">
+                        <!-- 动态生成色板 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 对称模式 -->
+        <div class="panel-section" id="symmetrySettings" style="display: none;">
+            <div class="panel-title">
+                <span>🔮</span>
+                <span>对称绘制</span>
+            </div>
+
+            <div class="symmetry-controls">
+                <div class="symmetry-mode" data-mode="none">
+                    <div class="icon">⭕</div>
+                    <div class="name">无</div>
+                </div>
+                <div class="symmetry-mode" data-mode="horizontal">
+                    <div class="icon">↔️</div>
+                    <div class="name">水平</div>
+                </div>
+                <div class="symmetry-mode" data-mode="vertical">
+                    <div class="icon">↕️</div>
+                    <div class="name">垂直</div>
+                </div>
+                <div class="symmetry-mode" data-mode="radial">
+                    <div class="icon">✳️</div>
+                    <div class="name">径向</div>
+                </div>
+                <div class="symmetry-mode" data-mode="kaleidoscope">
+                    <div class="icon">🌺</div>
+                    <div class="name">万花筒</div>
+                </div>
+                <div class="symmetry-mode" data-mode="custom">
+                    <div class="icon">⚙️</div>
+                    <div class="name">自定义</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px;">分段数: <span id="symmetrySegments">4</span></label>
+                <input type="range" class="slider" id="symmetrySegmentsSlider" min="2" max="32" value="4">
+            </div>
+        </div>
+
+        <!-- 透视设置 -->
+        <div class="panel-section" id="perspectiveSettings" style="display: none;">
+            <div class="panel-title">
+                <span>📐</span>
+                <span>透视标尺</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <button class="perspective-mode" data-points="1">1点透视</button>
+                <button class="perspective-mode" data-points="2">2点透视</button>
+                <button class="perspective-mode" data-points="3">3点透视</button>
+                <button class="perspective-mode" data-points="custom">自定义</button>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <label style="font-size: 11px;">
+                    <input type="checkbox" id="perspectiveSnap" checked> 吸附到透视线
+                </label>
+            </div>
+
+            <div style="margin-top: 8px;">
+                <label style="font-size: 11px;">网格密度: <span id="gridDensity">10</span></label>
+                <input type="range" class="slider" id="gridDensitySlider" min="5" max="50" value="10">
+            </div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="panel-section">
+            <div class="panel-title">
+                <span>⏰</span>
+                <span>历史记录</span>
+            </div>
+            <div class="history-timeline" id="historyTimeline">
+                <!-- 动态生成历史记录 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 参考图片窗口 -->
+    <div class="reference-window" id="referenceWindow">
+        <div class="reference-header">
+            <span>参考图片</span>
+            <button id="closeReference">✖️</button>
+        </div>
+        <div class="reference-content">
+            <img id="referenceImage" src="" alt="参考图片">
+        </div>
+    </div>
+
+    <!-- 快捷键提示 -->
+    <div class="shortcut-hint" id="shortcutHint"></div>
+
+    <!-- 加载动画 -->
+    <div class="loader" id="loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- 性能监视器 -->
+    <div class="performance-monitor" id="performanceMonitor">
+        FPS: <span id="fps">60</span><br>
+        Memory: <span id="memory">0</span> MB<br>
+        Layers: <span id="layerCount">1</span>
+    </div>
+
+    <!-- 云端同步状态 -->
+    <div class="sync-status" id="syncStatus">
+        <div class="sync-icon">🔄</div>
+        <span id="syncMessage">同步中...</span>
+    </div>
+
+    <!-- 工具提示 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // 应用程序主模块
+        class DrawingApp {
+            constructor() {
+                this.canvas = document.getElementById('mainCanvas');
+                this.ctx = this.canvas.getContext('2d', {
+                    willReadFrequently: true,
+                    alpha: true
+                });
+
+                // 设置画布大小
+                this.setupCanvas();
+
+                // 初始化各个模块
+                this.brushEngine = new BrushEngine(this);
+                this.layerManager = new LayerManager(this);
+                this.colorSystem = new ColorSystem(this);
+                this.historyManager = new HistoryManager(this);
+                this.symmetryTool = new SymmetryTool(this);
+                this.perspectiveTool = new PerspectiveTool(this);
+                this.transformTool = new TransformTool(this);
+
+                // 工具状态
+                this.currentTool = 'brush';
+                this.isDrawing = false;
+                this.lastPoint = null;
+
+                // 画布变换
+                this.zoom = 1;
+                this.panX = 0;
+                this.panY = 0;
+
+                // 初始化事件监听
+                this.initEventListeners();
+
+                // 初始化UI
+                this.initUI();
+
+                // 性能监控
+                this.performanceMonitor = new PerformanceMonitor();
+
+                // 云端同步（模拟）
+                this.cloudSync = new CloudSync();
+            }
+
+            setupCanvas() {
+                const container = document.getElementById('canvasContainer');
+                const rect = container.getBoundingClientRect();
+
+                this.canvas.width = 1920;  // 默认画布大小
+                this.canvas.height = 1080;
+
+                // 设置画布样式
+                this.canvas.style.width = '100%';
+                this.canvas.style.height = '100%';
+                this.canvas.style.imageRendering = 'crisp-edges';
+            }
+
+            initEventListeners() {
+                // 鼠标事件
+                this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                this.canvas.addEventListener('mouseleave', this.handleMouseUp.bind(this));
+
+                // 触摸事件（支持压感）
+                this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+                this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+                this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
+
+                // 指针事件（支持更高级的压感和倾斜）
+                if (window.PointerEvent) {
+                    this.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+                    this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
+                    this.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
+                }
+
+                // 键盘快捷键
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+                document.addEventListener('keyup', this.handleKeyUp.bind(this));
+
+                // 滚轮缩放
+                this.canvas.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+
+                // 窗口调整
+                window.addEventListener('resize', this.handleResize.bind(this));
+            }
+
+            initUI() {
+                // 工具按钮
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.selectTool(btn.dataset.tool);
+                    });
+                });
+
+                // 笔刷设置
+                this.initBrushControls();
+
+                // 图层管理
+                this.layerManager.initUI();
+
+                // 颜色系统
+                this.colorSystem.initUI();
+
+                // 历史记录
+                this.historyManager.initUI();
+
+                // 缩放控制
+                this.initZoomControls();
+
+                // 文件操作
+                this.initFileControls();
+            }
+
+            initBrushControls() {
+                // 笔刷大小
+                const sizeSlider = document.getElementById('brushSizeSlider');
+                sizeSlider.addEventListener('input', (e) => {
+                    this.brushEngine.setSize(e.target.value);
+                    document.getElementById('brushSizeValue').textContent = e.target.value + 'px';
+                });
+
+                // 硬度
+                const hardnessSlider = document.getElementById('brushHardnessSlider');
+                hardnessSlider.addEventListener('input', (e) => {
+                    this.brushEngine.setHardness(e.target.value / 100);
+                    document.getElementById('brushHardnessValue').textContent = e.target.value + '%';
+                });
+
+                // 流量
+                const flowSlider = document.getElementById('brushFlowSlider');
+                flowSlider.addEventListener('input', (e) => {
+                    this.brushEngine.setFlow(e.target.value / 100);
+                    document.getElementById('brushFlowValue').textContent = e.target.value + '%';
+                });
+
+                // 间距
+                const spacingSlider = document.getElementById('brushSpacingSlider');
+                spacingSlider.addEventListener('input', (e) => {
+                    this.brushEngine.setSpacing(e.target.value / 100);
+                    document.getElementById('brushSpacingValue').textContent = e.target.value + '%';
+                });
+
+                // 压力感应
+                document.getElementById('pressureSize').addEventListener('change', (e) => {
+                    this.brushEngine.pressureSettings.size = e.target.checked;
+                });
+
+                document.getElementById('pressureOpacity').addEventListener('change', (e) => {
+                    this.brushEngine.pressureSettings.opacity = e.target.checked;
+                });
+
+                document.getElementById('pressureFlow').addEventListener('change', (e) => {
+                    this.brushEngine.pressureSettings.flow = e.target.checked;
+                });
+
+                document.getElementById('pressureHardness').addEventListener('change', (e) => {
+                    this.brushEngine.pressureSettings.hardness = e.target.checked;
+                });
+
+                // 倾斜感应
+                document.getElementById('tiltAngle').addEventListener('change', (e) => {
+                    this.brushEngine.tiltSettings.angle = e.target.checked;
+                });
+
+                document.getElementById('tiltShape').addEventListener('change', (e) => {
+                    this.brushEngine.tiltSettings.shape = e.target.checked;
+                });
+
+                // 速度感应
+                document.getElementById('velocitySize').addEventListener('change', (e) => {
+                    this.brushEngine.velocitySettings.size = e.target.checked;
+                });
+
+                document.getElementById('velocitySmooth').addEventListener('change', (e) => {
+                    this.brushEngine.velocitySettings.smooth = e.target.checked;
+                });
+
+                // 纹理
+                document.getElementById('brushTexture').addEventListener('change', (e) => {
+                    this.brushEngine.setTexture(e.target.value);
+                });
+
+                // 生成笔刷预设
+                this.generateBrushPresets();
+            }
+
+            generateBrushPresets() {
+                const presetsContainer = document.getElementById('brushPresets');
+                const presets = [
+                    { name: '铅笔', type: 'pencil', size: 2, hardness: 0.8 },
+                    { name: '钢笔', type: 'pen', size: 5, hardness: 1 },
+                    { name: '马克笔', type: 'marker', size: 15, hardness: 0.5 },
+                    { name: '水彩', type: 'watercolor', size: 20, hardness: 0.2 },
+                    { name: '油画', type: 'oil', size: 30, hardness: 0.7 },
+                    { name: '粉笔', type: 'chalk', size: 25, hardness: 0.3 },
+                    { name: '喷枪', type: 'airbrush', size: 40, hardness: 0.1 },
+                    { name: '纹理笔', type: 'textured', size: 35, hardness: 0.6 }
+                ];
+
+                presets.forEach(preset => {
+                    const div = document.createElement('div');
+                    div.className = 'brush-preset';
+                    div.title = preset.name;
+                    div.dataset.preset = JSON.stringify(preset);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 50;
+                    canvas.height = 50;
+                    this.drawBrushPreview(canvas, preset);
+
+                    div.appendChild(canvas);
+                    div.addEventListener('click', () => {
+                        this.brushEngine.loadPreset(preset);
+                        document.querySelectorAll('.brush-preset').forEach(p => p.classList.remove('active'));
+                        div.classList.add('active');
+                    });
+
+                    presetsContainer.appendChild(div);
+                });
+            }
+
+            drawBrushPreview(canvas, preset) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // 绘制预览笔触
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = preset.size / 2;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = preset.hardness;
+
+                ctx.beginPath();
+                ctx.moveTo(10, 40);
+                ctx.quadraticCurveTo(25, 10, 40, 40);
+                ctx.stroke();
+            }
+
+            initZoomControls() {
+                const zoomSlider = document.getElementById('zoomSlider');
+                zoomSlider.addEventListener('input', (e) => {
+                    this.setZoom(e.target.value / 100);
+                });
+
+                document.getElementById('fitToScreenBtn').addEventListener('click', () => {
+                    this.fitToScreen();
+                });
+            }
+
+            initFileControls() {
+                document.getElementById('newFileBtn').addEventListener('click', () => {
+                    if (confirm('创建新文件将清空当前画布，是否继续？')) {
+                        this.newFile();
+                    }
+                });
+
+                document.getElementById('openFileBtn').addEventListener('click', () => {
+                    this.openFile();
+                });
+
+                document.getElementById('saveFileBtn').addEventListener('click', () => {
+                    this.saveFile();
+                });
+
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportImage();
+                });
+            }
+
+            selectTool(tool) {
+                this.currentTool = tool;
+
+                // 更新UI
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tool === tool);
+                });
+
+                // 显示/隐藏相关设置面板
+                document.getElementById('brushSettings').style.display =
+                    (tool === 'brush' || tool === 'eraser') ? 'block' : 'none';
+                document.getElementById('symmetrySettings').style.display =
+                    tool === 'symmetry' ? 'block' : 'none';
+                document.getElementById('perspectiveSettings').style.display =
+                    tool === 'perspective' ? 'block' : 'none';
+
+                // 更新光标
+                this.updateCursor();
+            }
+
+            updateCursor() {
+                const cursor = document.getElementById('customCursor');
+                const ring = document.getElementById('cursorRing');
+
+                if (this.currentTool === 'brush' || this.currentTool === 'eraser') {
+                    cursor.style.display = 'block';
+                    ring.style.width = this.brushEngine.size + 'px';
+                    ring.style.height = this.brushEngine.size + 'px';
+                } else {
+                    cursor.style.display = 'none';
+                }
+            }
+
+            handleMouseDown(e) {
+                this.startDrawing(e);
+            }
+
+            handleMouseMove(e) {
+                this.continueDrawing(e);
+                this.updateCustomCursor(e);
+            }
+
+            handleMouseUp(e) {
+                this.stopDrawing(e);
+            }
+
+            handleTouchStart(e) {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    this.startDrawing(e.touches[0]);
+                }
+            }
+
+            handleTouchMove(e) {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    this.continueDrawing(e.touches[0]);
+                }
+            }
+
+            handleTouchEnd(e) {
+                e.preventDefault();
+                this.stopDrawing(e.changedTouches[0]);
+            }
+
+            handlePointerDown(e) {
+                this.pointerPressure = e.pressure || 1;
+                this.pointerTiltX = e.tiltX || 0;
+                this.pointerTiltY = e.tiltY || 0;
+                this.startDrawing(e);
+            }
+
+            handlePointerMove(e) {
+                this.pointerPressure = e.pressure || 1;
+                this.pointerTiltX = e.tiltX || 0;
+                this.pointerTiltY = e.tiltY || 0;
+                this.continueDrawing(e);
+                this.updateCustomCursor(e);
+            }
+
+            handlePointerUp(e) {
+                this.stopDrawing(e);
+            }
+
+            handleKeyDown(e) {
+                // 快捷键处理
+                const shortcuts = {
+                    'b': () => this.selectTool('brush'),
+                    'e': () => this.selectTool('eraser'),
+                    'i': () => this.selectTool('eyedropper'),
+                    'g': () => this.selectTool('fill'),
+                    't': () => this.selectTool('text'),
+                    'm': () => this.selectTool('select'),
+                    'y': () => this.selectTool('symmetry'),
+                    'p': () => this.selectTool('perspective'),
+                    'r': () => this.selectTool('reference'),
+                    'z': () => e.ctrlKey && this.historyManager.undo(),
+                    'y': () => e.ctrlKey && this.historyManager.redo(),
+                    's': () => e.ctrlKey && this.saveFile(),
+                    'o': () => e.ctrlKey && this.openFile(),
+                    'n': () => e.ctrlKey && this.newFile(),
+                    '[': () => this.brushEngine.decreaseSize(),
+                    ']': () => this.brushEngine.increaseSize(),
+                };
+
+                const key = e.key.toLowerCase();
+                if (shortcuts[key]) {
+                    e.preventDefault();
+                    shortcuts[key]();
+
+                    // 显示快捷键提示
+                    this.showShortcutHint(key);
+                }
+
+                // Shift键按住时切换到吸管工具
+                if (e.key === 'Alt' && !this.altPressed) {
+                    this.altPressed = true;
+                    this.previousTool = this.currentTool;
+                    this.selectTool('eyedropper');
+                }
+            }
+
+            handleKeyUp(e) {
+                if (e.key === 'Alt' && this.altPressed) {
+                    this.altPressed = false;
+                    this.selectTool(this.previousTool);
+                }
+            }
+
+            handleWheel(e) {
+                e.preventDefault();
+
+                if (e.ctrlKey) {
+                    // 缩放
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.setZoom(this.zoom * delta);
+                } else {
+                    // 平移
+                    this.panX += e.deltaX;
+                    this.panY += e.deltaY;
+                    this.updateViewport();
+                }
+            }
+
+            handleResize() {
+                this.updateViewport();
+            }
+
+            startDrawing(e) {
+                const point = this.getCanvasPoint(e);
+                this.isDrawing = true;
+                this.lastPoint = point;
+
+                // 记录起始时间（用于速度计算）
+                this.lastTime = performance.now();
+                this.velocity = 0;
+
+                // 保存历史状态
+                this.historyManager.saveState();
+
+                // 根据工具执行相应操作
+                switch (this.currentTool) {
+                    case 'brush':
+                    case 'eraser':
+                        this.brushEngine.startStroke(point, this.getInputData(e));
+                        break;
+                    case 'eyedropper':
+                        this.colorSystem.pickColor(point);
+                        break;
+                    case 'fill':
+                        this.fillArea(point);
+                        break;
+                    // ... 其他工具
+                }
+            }
+
+            continueDrawing(e) {
+                const point = this.getCanvasPoint(e);
+
+                // 计算速度
+                const now = performance.now();
+                const dt = now - this.lastTime;
+                const distance = this.lastPoint ?
+                    Math.sqrt(Math.pow(point.x - this.lastPoint.x, 2) +
+                             Math.pow(point.y - this.lastPoint.y, 2)) : 0;
+                this.velocity = distance / dt;
+                this.lastTime = now;
+
+                if (this.isDrawing) {
+                    switch (this.currentTool) {
+                        case 'brush':
+                        case 'eraser':
+                            if (this.lastPoint) {
+                                this.brushEngine.continueStroke(
+                                    this.lastPoint,
+                                    point,
+                                    this.getInputData(e)
+                                );
+                            }
+                            break;
+                        // ... 其他工具
+                    }
+                }
+
+                this.lastPoint = point;
+            }
+
+            stopDrawing(e) {
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+
+                    switch (this.currentTool) {
+                        case 'brush':
+                        case 'eraser':
+                            this.brushEngine.endStroke();
+                            break;
+                        // ... 其他工具
+                    }
+
+                    // 更新图层缩略图
+                    this.layerManager.updateThumbnails();
+                }
+            }
+
+            getCanvasPoint(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / this.zoom - this.panX;
+                const y = (e.clientY - rect.top) / this.zoom - this.panY;
+                return { x, y };
+            }
+
+            getInputData(e) {
+                return {
+                    pressure: this.pointerPressure || (e.pressure || 1),
+                    tiltX: this.pointerTiltX || (e.tiltX || 0),
+                    tiltY: this.pointerTiltY || (e.tiltY || 0),
+                    velocity: this.velocity || 0,
+                    time: performance.now()
+                };
+            }
+
+            updateCustomCursor(e) {
+                const cursor = document.getElementById('customCursor');
+                if (cursor.style.display !== 'none') {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                }
+            }
+
+            setZoom(zoom) {
+                this.zoom = Math.max(0.1, Math.min(5, zoom));
+                document.getElementById('zoomLevel').textContent = Math.round(this.zoom * 100) + '%';
+                document.getElementById('zoomSlider').value = Math.round(this.zoom * 100);
+                this.updateViewport();
+            }
+
+            fitToScreen() {
+                const container = document.getElementById('canvasContainer');
+                const containerRect = container.getBoundingClientRect();
+
+                const scaleX = containerRect.width / this.canvas.width;
+                const scaleY = containerRect.height / this.canvas.height;
+                const scale = Math.min(scaleX, scaleY) * 0.9;
+
+                this.setZoom(scale);
+                this.panX = 0;
+                this.panY = 0;
+                this.updateViewport();
+            }
+
+            updateViewport() {
+                const viewport = document.getElementById('canvasViewport');
+                viewport.style.transform = `scale(${this.zoom}) translate(${this.panX}px, ${this.panY}px)`;
+            }
+
+            showShortcutHint(key) {
+                const hint = document.getElementById('shortcutHint');
+                const shortcuts = {
+                    'b': '画笔工具',
+                    'e': '橡皮擦',
+                    'i': '吸管工具',
+                    // ... 其他快捷键
+                };
+
+                hint.textContent = shortcuts[key] || key.toUpperCase();
+                hint.classList.add('show');
+
+                setTimeout(() => {
+                    hint.classList.remove('show');
+                }, 1500);
+            }
+
+            fillArea(point) {
+                // 实现智能填充算法
+                const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                const targetColor = this.getPixelColor(imageData, Math.floor(point.x), Math.floor(point.y));
+                const fillColor = this.colorSystem.getCurrentColor();
+
+                // 使用改进的填充算法（支持容差）
+                this.floodFill(imageData, point.x, point.y, targetColor, fillColor, 10);
+
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+
+            floodFill(imageData, x, y, targetColor, fillColor, tolerance) {
+                // 实现带容差的洪水填充算法
+                // ... 算法实现
+            }
+
+            getPixelColor(imageData, x, y) {
+                const index = (y * imageData.width + x) * 4;
+                return {
+                    r: imageData.data[index],
+                    g: imageData.data[index + 1],
+                    b: imageData.data[index + 2],
+                    a: imageData.data[index + 3]
+                };
+            }
+
+            newFile() {
+                this.layerManager.clear();
+                this.historyManager.clear();
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            openFile() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*,.psd';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        this.loadFile(file);
+                    }
+                };
+                input.click();
+            }
+
+            loadFile(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (file.name.endsWith('.psd')) {
+                        // 处理PSD文件
+                        this.loadPSDFile(e.target.result);
+                    } else {
+                        // 处理普通图片
+                        const img = new Image();
+                        img.onload = () => {
+                            this.canvas.width = img.width;
+                            this.canvas.height = img.height;
+                            this.ctx.drawImage(img, 0, 0);
+                            this.historyManager.saveState();
+                        };
+                        img.src = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+
+            loadPSDFile(data) {
+                // 实现PSD文件解析
+                console.log('PSD文件支持正在开发中...');
+            }
+
+            saveFile() {
+                // 保存为专有格式（包含图层信息）
+                const projectData = {
+                    version: '1.0',
+                    canvas: {
+                        width: this.canvas.width,
+                        height: this.canvas.height
+                    },
+                    layers: this.layerManager.exportLayers(),
+                    history: this.historyManager.exportHistory()
+                };
+
+                const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `drawing_${Date.now()}.xhp`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            exportImage() {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.canvas.width;
+                canvas.height = this.canvas.height;
+                const ctx = canvas.getContext('2d');
+
+                // 合并所有图层
+                this.layerManager.renderAllLayers(ctx);
+
+                // 导出为PNG
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `export_${Date.now()}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+            }
+        }
+
+        // 笔刷引擎
+        class BrushEngine {
+            constructor(app) {
+                this.app = app;
+                this.ctx = app.ctx;
+
+                // 基础参数
+                this.size = 10;
+                this.hardness = 1;
+                this.flow = 1;
+                this.spacing = 0.25;
+                this.smoothing = 0.5;
+
+                // 压力感应设置
+                this.pressureSettings = {
+                    size: true,
+                    opacity: true,
+                    flow: false,
+                    hardness: false
+                };
+
+                // 倾斜感应设置
+                this.tiltSettings = {
+                    angle: false,
+                    shape: false
+                };
+
+                // 速度感应设置
+                this.velocitySettings = {
+                    size: false,
+                    smooth: false
+                };
+
+                // 纹理
+                this.texture = null;
+                this.textureStrength = 0.5;
+
+                // 笔触缓冲
+                this.strokeBuffer = [];
+                this.lastStamp = null;
+
+                // 自然媒介模拟
+                this.wetness = 0;
+                this.bleedAmount = 0;
+                this.paperTexture = null;
+
+                // 初始化纹理
+                this.initTextures();
+            }
+
+            initTextures() {
+                // 创建程序化纹理
+                this.textures = {
+                    canvas: this.createCanvasTexture(),
+                    paper: this.createPaperTexture(),
+                    watercolor: this.createWatercolorTexture(),
+                    rough: this.createRoughTexture()
+                };
+            }
+
+            createCanvasTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                // 生成画布纹理图案
+                for (let i = 0; i < 256; i += 4) {
+                    for (let j = 0; j < 256; j += 4) {
+                        ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.1})`;
+                        ctx.fillRect(i, j, 2, 2);
+                    }
+                }
+
+                return canvas;
+            }
+
+            createPaperTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                // 生成纸张纹理
+                const imageData = ctx.createImageData(256, 256);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    const noise = Math.random() * 20;
+                    imageData.data[i] = 255 - noise;
+                    imageData.data[i + 1] = 255 - noise;
+                    imageData.data[i + 2] = 255 - noise;
+                    imageData.data[i + 3] = 255;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                return canvas;
+            }
+
+            createWatercolorTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                // 生成水彩纹理
+                for (let i = 0; i < 50; i++) {
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`;
+                    ctx.beginPath();
+                    ctx.arc(
+                        Math.random() * 256,
+                        Math.random() * 256,
+                        Math.random() * 30 + 10,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+
+                return canvas;
+            }
+
+            createRoughTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                // 生成粗糙表面纹理
+                for (let i = 0; i < 1000; i++) {
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.2})`;
+                    ctx.fillRect(
+                        Math.random() * 256,
+                        Math.random() * 256,
+                        Math.random() * 3,
+                        Math.random() * 3
+                    );
+                }
+
+                return canvas;
+            }
+
+            setTexture(textureName) {
+                if (textureName === 'none') {
+                    this.texture = null;
+                } else if (this.textures[textureName]) {
+                    this.texture = this.textures[textureName];
+                }
+            }
+
+            startStroke(point, inputData) {
+                this.strokeBuffer = [point];
+                this.lastStamp = null;
+
+                // 设置画笔样式
+                this.setupBrush(inputData);
+
+                // 绘制起始点
+                this.drawStamp(point, inputData);
+            }
+
+            continueStroke(from, to, inputData) {
+                // 平滑处理
+                if (this.velocitySettings.smooth) {
+                    to = this.smoothPoint(from, to);
+                }
+
+                // 计算需要的印章数量
+                const distance = Math.sqrt(
+                    Math.pow(to.x - from.x, 2) +
+                    Math.pow(to.y - from.y, 2)
+                );
+
+                const steps = Math.max(1, Math.floor(distance / (this.size * this.spacing)));
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const point = {
+                        x: from.x + (to.x - from.x) * t,
+                        y: from.y + (to.y - from.y) * t
+                    };
+
+                    // 根据速度调整输入数据
+                    const adjustedData = this.adjustInputData(inputData);
+
+                    this.drawStamp(point, adjustedData);
+                }
+
+                this.strokeBuffer.push(to);
+                if (this.strokeBuffer.length > 10) {
+                    this.strokeBuffer.shift();
+                }
+            }
+
+            endStroke() {
+                // 应用最终的混合效果
+                if (this.wetness > 0) {
+                    this.applyWetEdges();
+                }
+
+                this.strokeBuffer = [];
+                this.lastStamp = null;
+            }
+
+            setupBrush(inputData) {
+                const ctx = this.ctx;
+
+                // 设置基础属性
+                ctx.globalCompositeOperation = this.app.currentTool === 'eraser' ?
+                    'destination-out' : 'source-over';
+
+                // 计算实际值
+                let actualSize = this.size;
+                let actualOpacity = this.flow;
+                let actualHardness = this.hardness;
+
+                // 应用压力感应
+                if (this.pressureSettings.size) {
+                    actualSize *= (0.3 + inputData.pressure * 0.7);
+                }
+                if (this.pressureSettings.opacity) {
+                    actualOpacity *= inputData.pressure;
+                }
+                if (this.pressureSettings.hardness) {
+                    actualHardness *= inputData.pressure;
+                }
+
+                // 应用速度感应
+                if (this.velocitySettings.size) {
+                    const velocityFactor = Math.min(1, inputData.velocity / 100);
+                    actualSize *= (1 - velocityFactor * 0.5);
+                }
+
+                // 应用倾斜感应
+                if (this.tiltSettings.angle) {
+                    const tiltAngle = Math.atan2(inputData.tiltY, inputData.tiltX);
+                    ctx.rotate(tiltAngle);
+                }
+
+                ctx.globalAlpha = actualOpacity;
+
+                return { actualSize, actualOpacity, actualHardness };
+            }
+
+            drawStamp(point, inputData) {
+                const ctx = this.ctx;
+                const { actualSize, actualOpacity, actualHardness } = this.setupBrush(inputData);
+
+                ctx.save();
+
+                // 创建笔刷图章
+                const stampCanvas = document.createElement('canvas');
+                stampCanvas.width = actualSize * 2;
+                stampCanvas.height = actualSize * 2;
+                const stampCtx = stampCanvas.getContext('2d');
+
+                // 绘制笔刷形状
+                if (actualHardness < 1) {
+                    // 柔边笔刷
+                    const gradient = stampCtx.createRadialGradient(
+                        actualSize, actualSize, 0,
+                        actualSize, actualSize, actualSize
+                    );
+
+                    gradient.addColorStop(0, `rgba(${this.app.colorSystem.currentColor.r},${this.app.colorSystem.currentColor.g},${this.app.colorSystem.currentColor.b},1)`);
+                    gradient.addColorStop(actualHardness, `rgba(${this.app.colorSystem.currentColor.r},${this.app.colorSystem.currentColor.g},${this.app.colorSystem.currentColor.b},1)`);
+                    gradient.addColorStop(1, `rgba(${this.app.colorSystem.currentColor.r},${this.app.colorSystem.currentColor.g},${this.app.colorSystem.currentColor.b},0)`);
+
+                    stampCtx.fillStyle = gradient;
+                    stampCtx.fillRect(0, 0, stampCanvas.width, stampCanvas.height);
+                } else {
+                    // 硬边笔刷
+                    stampCtx.fillStyle = `rgb(${this.app.colorSystem.currentColor.r},${this.app.colorSystem.currentColor.g},${this.app.colorSystem.currentColor.b})`;
+                    stampCtx.beginPath();
+                    stampCtx.arc(actualSize, actualSize, actualSize, 0, Math.PI * 2);
+                    stampCtx.fill();
+                }
+
+                // 应用纹理
+                if (this.texture) {
+                    stampCtx.globalCompositeOperation = 'multiply';
+                    stampCtx.globalAlpha = this.textureStrength;
+                    stampCtx.drawImage(this.texture, 0, 0, stampCanvas.width, stampCanvas.height);
+                }
+
+                // 绘制到主画布
+                ctx.drawImage(
+                    stampCanvas,
+                    point.x - actualSize,
+                    point.y - actualSize
+                );
+
+                ctx.restore();
+
+                this.lastStamp = { point, size: actualSize };
+            }
+
+            smoothPoint(from, to) {
+                if (this.strokeBuffer.length < 2) {
+                    return to;
+                }
+
+                // 使用贝塞尔曲线平滑
+                const smoothing = this.smoothing;
+                return {
+                    x: from.x + (to.x - from.x) * (1 - smoothing),
+                    y: from.y + (to.y - from.y) * (1 - smoothing)
+                };
+            }
+
+            adjustInputData(inputData) {
+                // 根据各种设置调整输入数据
+                const adjusted = { ...inputData };
+
+                // 速度平滑
+                if (this.velocitySettings.smooth) {
+                    adjusted.velocity = this.smoothVelocity(adjusted.velocity);
+                }
+
+                return adjusted;
+            }
+
+            smoothVelocity(velocity) {
+                // 实现速度平滑算法
+                if (!this.velocityHistory) {
+                    this.velocityHistory = [];
+                }
+
+                this.velocityHistory.push(velocity);
+                if (this.velocityHistory.length > 5) {
+                    this.velocityHistory.shift();
+                }
+
+                return this.velocityHistory.reduce((a, b) => a + b) / this.velocityHistory.length;
+            }
+
+            applyWetEdges() {
+                // 实现湿边效果
+                // 这里可以实现水彩画的边缘积累效果
+            }
+
+            loadPreset(preset) {
+                this.size = preset.size || 10;
+                this.hardness = preset.hardness || 1;
+
+                // 更新UI
+                document.getElementById('brushSizeSlider').value = this.size;
+                document.getElementById('brushSizeValue').textContent = this.size + 'px';
+                document.getElementById('brushHardnessSlider').value = this.hardness * 100;
+                document.getElementById('brushHardnessValue').textContent = Math.round(this.hardness * 100) + '%';
+
+                // 应用预设特有设置
+                switch (preset.type) {
+                    case 'watercolor':
+                        this.wetness = 0.7;
+                        this.bleedAmount = 0.3;
+                        this.setTexture('watercolor');
+                        break;
+                    case 'oil':
+                        this.wetness = 0.3;
+                        this.setTexture('canvas');
+                        break;
+                    case 'pencil':
+                        this.setTexture('paper');
+                        this.pressureSettings.size = true;
+                        this.pressureSettings.opacity = true;
+                        break;
+                    // ... 其他预设
+                }
+            }
+
+            setSize(size) {
+                this.size = parseInt(size);
+                this.app.updateCursor();
+            }
+
+            setHardness(hardness) {
+                this.hardness = hardness;
+            }
+
+            setFlow(flow) {
+                this.flow = flow;
+            }
+
+            setSpacing(spacing) {
+                this.spacing = spacing;
+            }
+
+            increaseSize() {
+                this.setSize(Math.min(500, this.size + 5));
+                document.getElementById('brushSizeSlider').value = this.size;
+                document.getElementById('brushSizeValue').textContent = this.size + 'px';
+            }
+
+            decreaseSize() {
+                this.setSize(Math.max(1, this.size - 5));
+                document.getElementById('brushSizeSlider').value = this.size;
+                document.getElementById('brushSizeValue').textContent = this.size + 'px';
+            }
+        }
+
+        // 图层管理器
+        class LayerManager {
+            constructor(app) {
+                this.app = app;
+                this.layers = [];
+                this.activeLayerIndex = 0;
+
+                // 创建默认图层
+                this.addLayer('背景');
+            }
+
+            initUI() {
+                // 添加图层按钮
+                document.getElementById('addLayerBtn').addEventListener('click', () => {
+                    this.addLayer(`图层 ${this.layers.length + 1}`);
+                });
+
+                // 混合模式
+                document.getElementById('blendModeSelect').addEventListener('change', (e) => {
+                    this.setBlendMode(e.target.value);
+                });
+
+                // 不透明度
+                document.getElementById('layerOpacitySlider').addEventListener('input', (e) => {
+                    this.setOpacity(e.target.value / 100);
+                    document.getElementById('layerOpacityValue').textContent = e.target.value + '%';
+                });
+
+                this.updateLayersPanel();
+            }
+
+            addLayer(name) {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.app.canvas.width;
+                canvas.height = this.app.canvas.height;
+
+                const layer = {
+                    id: Date.now(),
+                    name: name,
+                    canvas: canvas,
+                    ctx: canvas.getContext('2d'),
+                    visible: true,
+                    opacity: 1,
+                    blendMode: 'normal',
+                    locked: false
+                };
+
+                this.layers.push(layer);
+                this.activeLayerIndex = this.layers.length - 1;
+                this.updateLayersPanel();
+
+                return layer;
+            }
+
+            removeLayer(index) {
+                if (this.layers.length > 1) {
+                    this.layers.splice(index, 1);
+                    this.activeLayerIndex = Math.min(this.activeLayerIndex, this.layers.length - 1);
+                    this.updateLayersPanel();
+                }
+            }
+
+            duplicateLayer(index) {
+                const source = this.layers[index];
+                const newLayer = this.addLayer(source.name + ' 副本');
+
+                // 复制画布内容
+                newLayer.ctx.drawImage(source.canvas, 0, 0);
+
+                this.updateLayersPanel();
+            }
+
+            mergeDown(index) {
+                if (index > 0) {
+                    const upper = this.layers[index];
+                    const lower = this.layers[index - 1];
+
+                    // 合并图层
+                    lower.ctx.save();
+                    lower.ctx.globalAlpha = upper.opacity;
+                    lower.ctx.globalCompositeOperation = upper.blendMode;
+                    lower.ctx.drawImage(upper.canvas, 0, 0);
+                    lower.ctx.restore();
+
+                    // 删除上层
+                    this.removeLayer(index);
+                }
+            }
+
+            setBlendMode(mode) {
+                const layer = this.layers[this.activeLayerIndex];
+                if (layer) {
+                    layer.blendMode = mode;
+                    this.renderComposite();
+                }
+            }
+
+            setOpacity(opacity) {
+                const layer = this.layers[this.activeLayerIndex];
+                if (layer) {
+                    layer.opacity = opacity;
+                    this.renderComposite();
+                }
+            }
+
+            toggleVisibility(index) {
+                this.layers[index].visible = !this.layers[index].visible;
+                this.renderComposite();
+            }
+
+            toggleLock(index) {
+                this.layers[index].locked = !this.layers[index].locked;
+                this.updateLayersPanel();
+            }
+
+            selectLayer(index) {
+                this.activeLayerIndex = index;
+                this.updateLayersPanel();
+
+                // 切换绘制上下文到当前图层
+                this.app.ctx = this.layers[index].ctx;
+            }
+
+            updateLayersPanel() {
+                const panel = document.getElementById('layersPanel');
+                panel.innerHTML = '';
+
+                // 从上到下显示图层（数组反向）
+                [...this.layers].reverse().forEach((layer, reverseIndex) => {
+                    const index = this.layers.length - 1 - reverseIndex;
+                    const div = document.createElement('div');
+                    div.className = 'layer-item';
+                    if (index === this.activeLayerIndex) {
+                        div.classList.add('active');
+                    }
+
+                    // 缩略图
+                    const thumbnail = document.createElement('canvas');
+                    thumbnail.className = 'layer-thumbnail';
+                    thumbnail.width = 40;
+                    thumbnail.height = 40;
+                    const thumbCtx = thumbnail.getContext('2d');
+                    thumbCtx.drawImage(layer.canvas, 0, 0, 40, 40);
+
+                    // 图层信息
+                    const info = document.createElement('div');
+                    info.className = 'layer-info';
+                    info.innerHTML = `
+                        <div class="layer-name">${layer.name}</div>
+                        <div class="layer-opacity">${Math.round(layer.opacity * 100)}%</div>
+                    `;
+
+                    // 控制按钮
+                    const controls = document.createElement('div');
+                    controls.className = 'layer-controls';
+
+                    const visBtn = document.createElement('button');
+                    visBtn.className = 'layer-control-btn';
+                    visBtn.innerHTML = layer.visible ? '👁️' : '👁️‍🗨️';
+                    visBtn.onclick = () => this.toggleVisibility(index);
+
+                    const lockBtn = document.createElement('button');
+                    lockBtn.className = 'layer-control-btn';
+                    lockBtn.innerHTML = layer.locked ? '🔒' : '🔓';
+                    lockBtn.onclick = () => this.toggleLock(index);
+
+                    controls.appendChild(visBtn);
+                    controls.appendChild(lockBtn);
+
+                    div.appendChild(thumbnail);
+                    div.appendChild(info);
+                    div.appendChild(controls);
+
+                    div.onclick = (e) => {
+                        if (!e.target.classList.contains('layer-control-btn')) {
+                            this.selectLayer(index);
+                        }
+                    };
+
+                    panel.appendChild(div);
+                });
+
+                // 更新图层数量显示
+                document.getElementById('layerCount').textContent = this.layers.length;
+            }
+
+            updateThumbnails() {
+                // 更新所有图层缩略图
+                this.updateLayersPanel();
+            }
+
+            renderComposite() {
+                // 合成所有可见图层到主画布
+                const mainCtx = this.app.canvas.getContext('2d');
+                mainCtx.clearRect(0, 0, this.app.canvas.width, this.app.canvas.height);
+
+                this.layers.forEach(layer => {
+                    if (layer.visible) {
+                        mainCtx.save();
+                        mainCtx.globalAlpha = layer.opacity;
+                        mainCtx.globalCompositeOperation = layer.blendMode;
+                        mainCtx.drawImage(layer.canvas, 0, 0);
+                        mainCtx.restore();
+                    }
+                });
+            }
+
+            renderAllLayers(ctx) {
+                // 渲染所有图层到指定上下文（用于导出）
+                this.layers.forEach(layer => {
+                    if (layer.visible) {
+                        ctx.save();
+                        ctx.globalAlpha = layer.opacity;
+                        ctx.globalCompositeOperation = layer.blendMode;
+                        ctx.drawImage(layer.canvas, 0, 0);
+                        ctx.restore();
+                    }
+                });
+            }
+
+            clear() {
+                this.layers = [];
+                this.addLayer('背景');
+                this.updateLayersPanel();
+            }
+
+            exportLayers() {
+                // 导出图层数据
+                return this.layers.map(layer => ({
+                    name: layer.name,
+                    visible: layer.visible,
+                    opacity: layer.opacity,
+                    blendMode: layer.blendMode,
+                    locked: layer.locked,
+                    data: layer.canvas.toDataURL()
+                }));
+            }
+        }
+
+        // 颜色系统
+        class ColorSystem {
+            constructor(app) {
+                this.app = app;
+                this.currentColor = { r: 255, g: 107, b: 107 };
+                this.colorMode = 'rgb';
+                this.recentColors = [];
+                this.palette = [];
+
+                this.initColorWheel();
+            }
+
+            initUI() {
+                // 颜色模式切换
+                document.querySelectorAll('.color-mode-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        this.setColorMode(tab.dataset.mode);
+                        document.querySelectorAll('.color-mode-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                    });
+                });
+
+                // RGB输入
+                ['R', 'G', 'B'].forEach(channel => {
+                    document.getElementById(`color${channel}`).addEventListener('input', (e) => {
+                        this.currentColor[channel.toLowerCase()] = parseInt(e.target.value);
+                        this.updateColorDisplay();
+                    });
+                });
+
+                // 初始化最近颜色和色板
+                this.updateRecentColors();
+                this.loadDefaultPalette();
+            }
+
+            initColorWheel() {
+                const canvas = document.getElementById('colorWheel');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 200;
+                canvas.height = 200;
+
+                // 绘制色轮
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = 90;
+
+                for (let angle = 0; angle < 360; angle += 1) {
+                    const startAngle = (angle - 1) * Math.PI / 180;
+                    const endAngle = angle * Math.PI / 180;
+
+                    for (let r = 0; r < radius; r += 1) {
+                        const saturation = r / radius;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, r, startAngle, endAngle);
+                        ctx.strokeStyle = `hsl(${angle}, ${saturation * 100}%, 50%)`;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+
+                // 色轮交互
+                canvas.addEventListener('click', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left - centerX;
+                    const y = e.clientY - rect.top - centerY;
+
+                    const angle = Math.atan2(y, x) * 180 / Math.PI + 180;
+                    const distance = Math.sqrt(x * x + y * y);
+                    const saturation = Math.min(distance / radius, 1);
+
+                    this.setHSL(angle, saturation, 0.5);
+                });
+            }
+
+            setColorMode(mode) {
+                this.colorMode = mode;
+                this.updateColorInputs();
+            }
+
+            updateColorInputs() {
+                // 根据颜色模式更新输入框
+                // 这里可以根据不同模式显示不同的输入框
+            }
+
+            setHSL(h, s, l) {
+                // HSL转RGB
+                const c = (1 - Math.abs(2 * l - 1)) * s;
+                const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+                const m = l - c / 2;
+
+                let r, g, b;
+                if (h < 60) {
+                    [r, g, b] = [c, x, 0];
+                } else if (h < 120) {
+                    [r, g, b] = [x, c, 0];
+                } else if (h < 180) {
+                    [r, g, b] = [0, c, x];
+                } else if (h < 240) {
+                    [r, g, b] = [0, x, c];
+                } else if (h < 300) {
+                    [r, g, b] = [x, 0, c];
+                } else {
+                    [r, g, b] = [c, 0, x];
+                }
+
+                this.currentColor = {
+                    r: Math.round((r + m) * 255),
+                    g: Math.round((g + m) * 255),
+                    b: Math.round((b + m) * 255)
+                };
+
+                this.updateColorDisplay();
+            }
+
+            updateColorDisplay() {
+                // 更新颜色显示
+                document.getElementById('colorR').value = this.currentColor.r;
+                document.getElementById('colorG').value = this.currentColor.g;
+                document.getElementById('colorB').value = this.currentColor.b;
+
+                // 添加到最近使用
+                this.addToRecentColors(this.currentColor);
+            }
+
+            addToRecentColors(color) {
+                const colorStr = `rgb(${color.r},${color.g},${color.b})`;
+
+                // 移除重复的
+                this.recentColors = this.recentColors.filter(c => c !== colorStr);
+
+                // 添加到开头
+                this.recentColors.unshift(colorStr);
+
+                // 限制数量
+                if (this.recentColors.length > 16) {
+                    this.recentColors.pop();
+                }
+
+                this.updateRecentColors();
+            }
+
+            updateRecentColors() {
+                const container = document.getElementById('recentColors');
+                container.innerHTML = '';
+
+                this.recentColors.forEach(color => {
+                    const div = document.createElement('div');
+                    div.style.width = '20px';
+                    div.style.height = '20px';
+                    div.style.backgroundColor = color;
+                    div.style.border = '1px solid #dee2e6';
+                    div.style.borderRadius = '4px';
+                    div.style.cursor = 'pointer';
+
+                    div.onclick = () => {
+                        const rgb = color.match(/\d+/g);
+                        this.currentColor = {
+                            r: parseInt(rgb[0]),
+                            g: parseInt(rgb[1]),
+                            b: parseInt(rgb[2])
+                        };
+                        this.updateColorDisplay();
+                    };
+
+                    container.appendChild(div);
+                });
+            }
+
+            loadDefaultPalette() {
+                // 加载默认色板
+                const defaultColors = [
+                    '#000000', '#FFFFFF', '#FF0000', '#00FF00',
+                    '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+                    '#800000', '#008000', '#000080', '#808000',
+                    '#800080', '#008080', '#C0C0C0', '#808080'
+                ];
+
+                const container = document.getElementById('colorPalette');
+                container.innerHTML = '';
+
+                defaultColors.forEach(color => {
+                    const div = document.createElement('div');
+                    div.style.width = '20px';
+                    div.style.height = '20px';
+                    div.style.backgroundColor = color;
+                    div.style.border = '1px solid #dee2e6';
+                    div.style.borderRadius = '4px';
+                    div.style.cursor = 'pointer';
+
+                    div.onclick = () => {
+                        const hex = color.substring(1);
+                        this.currentColor = {
+                            r: parseInt(hex.substring(0, 2), 16),
+                            g: parseInt(hex.substring(2, 4), 16),
+                            b: parseInt(hex.substring(4, 6), 16)
+                        };
+                        this.updateColorDisplay();
+                    };
+
+                    container.appendChild(div);
+                });
+            }
+
+            pickColor(point) {
+                // 从画布拾取颜色
+                const imageData = this.app.ctx.getImageData(point.x, point.y, 1, 1);
+                const data = imageData.data;
+
+                this.currentColor = {
+                    r: data[0],
+                    g: data[1],
+                    b: data[2]
+                };
+
+                this.updateColorDisplay();
+            }
+
+            getCurrentColor() {
+                return this.currentColor;
+            }
+        }
+
+        // 历史管理器
+        class HistoryManager {
+            constructor(app) {
+                this.app = app;
+                this.history = [];
+                this.currentIndex = -1;
+                this.maxHistory = Infinity;  // 无限历史记录
+            }
+
+            initUI() {
+                // 撤销/重做按钮
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('redoBtn').addEventListener('click', () => this.redo());
+
+                this.updateUI();
+            }
+
+            saveState() {
+                // 保存当前状态
+                const state = {
+                    timestamp: Date.now(),
+                    action: this.getCurrentAction(),
+                    layers: this.app.layerManager.exportLayers(),
+                    thumbnail: this.createThumbnail()
+                };
+
+                // 如果不在历史末尾，删除后面的历史
+                if (this.currentIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.currentIndex + 1);
+                }
+
+                // 添加新状态
+                this.history.push(state);
+                this.currentIndex++;
+
+                // 限制历史数量（如果需要）
+                if (this.maxHistory !== Infinity && this.history.length > this.maxHistory) {
+                    this.history.shift();
+                    this.currentIndex--;
+                }
+
+                this.updateUI();
+                this.updateTimeline();
+            }
+
+            undo() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.restoreState(this.history[this.currentIndex]);
+                    this.updateUI();
+                    this.updateTimeline();
+                }
+            }
+
+            redo() {
+                if (this.currentIndex < this.history.length - 1) {
+                    this.currentIndex++;
+                    this.restoreState(this.history[this.currentIndex]);
+                    this.updateUI();
+                    this.updateTimeline();
+                }
+            }
+
+            restoreState(state) {
+                // 恢复状态
+                // 这里需要恢复图层数据
+                console.log('恢复状态:', state.action);
+            }
+
+            getCurrentAction() {
+                // 获取当前操作描述
+                const tool = this.app.currentTool;
+                const actions = {
+                    'brush': '画笔绘制',
+                    'eraser': '擦除',
+                    'fill': '填充',
+                    'text': '添加文字',
+                    // ...
+                };
+                return actions[tool] || '操作';
+            }
+
+            createThumbnail() {
+                // 创建缩略图
+                const thumbCanvas = document.createElement('canvas');
+                thumbCanvas.width = 30;
+                thumbCanvas.height = 30;
+                const ctx = thumbCanvas.getContext('2d');
+                ctx.drawImage(this.app.canvas, 0, 0, 30, 30);
+                return thumbCanvas.toDataURL();
+            }
+
+            updateUI() {
+                // 更新撤销/重做按钮状态
+                document.getElementById('undoBtn').disabled = this.currentIndex <= 0;
+                document.getElementById('redoBtn').disabled = this.currentIndex >= this.history.length - 1;
+
+                // 更新历史计数
+                document.getElementById('historyCount').textContent =
+                    `${this.currentIndex + 1}/${this.maxHistory === Infinity ? '∞' : this.maxHistory}`;
+            }
+
+            updateTimeline() {
+                // 更新历史时间轴
+                const timeline = document.getElementById('historyTimeline');
+                timeline.innerHTML = '';
+
+                // 显示最近的历史记录
+                const start = Math.max(0, this.currentIndex - 5);
+                const end = Math.min(this.history.length, this.currentIndex + 6);
+
+                for (let i = start; i < end; i++) {
+                    const state = this.history[i];
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    if (i === this.currentIndex) {
+                        div.classList.add('current');
+                    }
+
+                    const thumb = document.createElement('img');
+                    thumb.className = 'history-thumbnail';
+                    thumb.src = state.thumbnail;
+
+                    const info = document.createElement('div');
+                    info.className = 'history-info';
+                    info.innerHTML = `
+                        <div class="history-action">${state.action}</div>
+                        <div class="history-time">${this.formatTime(state.timestamp)}</div>
+                    `;
+
+                    div.appendChild(thumb);
+                    div.appendChild(info);
+
+                    div.onclick = () => {
+                        this.currentIndex = i;
+                        this.restoreState(state);
+                        this.updateUI();
+                        this.updateTimeline();
+                    };
+
+                    timeline.appendChild(div);
+                }
+            }
+
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            clear() {
+                this.history = [];
+                this.currentIndex = -1;
+                this.updateUI();
+                this.updateTimeline();
+            }
+
+            exportHistory() {
+                return this.history.map(state => ({
+                    timestamp: state.timestamp,
+                    action: state.action
+                }));
+            }
+        }
+
+        // 对称工具
+        class SymmetryTool {
+            constructor(app) {
+                this.app = app;
+                this.mode = 'none';
+                this.segments = 4;
+                this.center = { x: 960, y: 540 };
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+                this.updateOverlay();
+            }
+
+            setSegments(segments) {
+                this.segments = segments;
+                this.updateOverlay();
+            }
+
+            updateOverlay() {
+                // 更新对称辅助线显示
+                // ...
+            }
+
+            applySymmetry(point, callback) {
+                switch (this.mode) {
+                    case 'horizontal':
+                        callback(point);
+                        callback({ x: this.center.x * 2 - point.x, y: point.y });
+                        break;
+                    case 'vertical':
+                        callback(point);
+                        callback({ x: point.x, y: this.center.y * 2 - point.y });
+                        break;
+                    case 'radial':
+                        for (let i = 0; i < this.segments; i++) {
+                            const angle = (Math.PI * 2 / this.segments) * i;
+                            const cos = Math.cos(angle);
+                            const sin = Math.sin(angle);
+
+                            const dx = point.x - this.center.x;
+                            const dy = point.y - this.center.y;
+
+                            const newX = this.center.x + dx * cos - dy * sin;
+                            const newY = this.center.y + dx * sin + dy * cos;
+
+                            callback({ x: newX, y: newY });
+                        }
+                        break;
+                    case 'kaleidoscope':
+                        // 万花筒模式
+                        for (let i = 0; i < this.segments; i++) {
+                            const angle = (Math.PI * 2 / this.segments) * i;
+                            const cos = Math.cos(angle);
+                            const sin = Math.sin(angle);
+
+                            const dx = point.x - this.center.x;
+                            const dy = point.y - this.center.y;
+
+                            // 旋转
+                            const rotX = this.center.x + dx * cos - dy * sin;
+                            const rotY = this.center.y + dx * sin + dy * cos;
+                            callback({ x: rotX, y: rotY });
+
+                            // 镜像
+                            const mirrorX = this.center.x + dx * cos + dy * sin;
+                            const mirrorY = this.center.y - dx * sin + dy * cos;
+                            callback({ x: mirrorX, y: mirrorY });
+                        }
+                        break;
+                    default:
+                        callback(point);
+                }
+            }
+        }
+
+        // 透视工具
+        class PerspectiveTool {
+            constructor(app) {
+                this.app = app;
+                this.points = 1;
+                this.vanishingPoints = [];
+                this.gridDensity = 10;
+                this.snapEnabled = true;
+            }
+
+            setPoints(points) {
+                this.points = points;
+                this.setupVanishingPoints();
+                this.drawGrid();
+            }
+
+            setupVanishingPoints() {
+                // 设置灭点位置
+                switch (this.points) {
+                    case 1:
+                        this.vanishingPoints = [
+                            { x: this.app.canvas.width / 2, y: this.app.canvas.height / 2 }
+                        ];
+                        break;
+                    case 2:
+                        this.vanishingPoints = [
+                            { x: this.app.canvas.width * 0.2, y: this.app.canvas.height / 2 },
+                            { x: this.app.canvas.width * 0.8, y: this.app.canvas.height / 2 }
+                        ];
+                        break;
+                    case 3:
+                        this.vanishingPoints = [
+                            { x: this.app.canvas.width * 0.2, y: this.app.canvas.height / 2 },
+                            { x: this.app.canvas.width * 0.8, y: this.app.canvas.height / 2 },
+                            { x: this.app.canvas.width / 2, y: this.app.canvas.height * 0.1 }
+                        ];
+                        break;
+                }
+            }
+
+            drawGrid() {
+                const overlay = document.getElementById('perspectiveOverlay');
+                const ctx = overlay.getContext('2d');
+
+                overlay.width = this.app.canvas.width;
+                overlay.height = this.app.canvas.height;
+
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+                ctx.lineWidth = 1;
+
+                // 绘制透视网格
+                this.vanishingPoints.forEach(vp => {
+                    // 从灭点发出的射线
+                    for (let i = 0; i <= this.gridDensity; i++) {
+                        const angle = (Math.PI * 2 / this.gridDensity) * i;
+                        const endX = vp.x + Math.cos(angle) * 2000;
+                        const endY = vp.y + Math.sin(angle) * 2000;
+
+                        ctx.beginPath();
+                        ctx.moveTo(vp.x, vp.y);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                    }
+                });
+            }
+
+            snapToGrid(point) {
+                if (!this.snapEnabled) {
+                    return point;
+                }
+
+                // 吸附到最近的透视线
+                // ... 实现吸附算法
+
+                return point;
+            }
+        }
+
+        // 变换工具
+        class TransformTool {
+            constructor(app) {
+                this.app = app;
+                this.selection = null;
+                this.transformMatrix = [1, 0, 0, 1, 0, 0];
+            }
+
+            startTransform(selection) {
+                this.selection = selection;
+                // 显示变换控制点
+            }
+
+            applyTransform(matrix) {
+                // 应用变换矩阵
+                this.transformMatrix = matrix;
+                this.redrawSelection();
+            }
+
+            redrawSelection() {
+                // 重绘选区内容
+            }
+        }
+
+        // 性能监视器
+        class PerformanceMonitor {
+            constructor() {
+                this.fps = 60;
+                this.memory = 0;
+                this.lastTime = performance.now();
+                this.frames = 0;
+
+                // 开始监控
+                this.startMonitoring();
+            }
+
+            startMonitoring() {
+                setInterval(() => {
+                    const now = performance.now();
+                    const delta = now - this.lastTime;
+
+                    this.fps = Math.round((this.frames * 1000) / delta);
+                    this.frames = 0;
+                    this.lastTime = now;
+
+                    // 内存使用（如果支持）
+                    if (performance.memory) {
+                        this.memory = Math.round(performance.memory.usedJSHeapSize / 1048576);
+                    }
+
+                    this.updateDisplay();
+                }, 1000);
+
+                // 帧计数
+                const countFrame = () => {
+                    this.frames++;
+                    requestAnimationFrame(countFrame);
+                };
+                countFrame();
+            }
+
+            updateDisplay() {
+                document.getElementById('fps').textContent = this.fps;
+                document.getElementById('memory').textContent = this.memory;
+            }
+        }
+
+        // 云端同步（模拟）
+        class CloudSync {
+            constructor() {
+                this.syncing = false;
+                this.lastSync = Date.now();
+            }
+
+            async sync() {
+                this.showSyncStatus('同步中...');
+                this.syncing = true;
+
+                // 模拟同步延迟
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+                this.syncing = false;
+                this.lastSync = Date.now();
+                this.showSyncStatus('已同步');
+
+                setTimeout(() => {
+                    this.hideSyncStatus();
+                }, 2000);
+            }
+
+            showSyncStatus(message) {
+                const status = document.getElementById('syncStatus');
+                document.getElementById('syncMessage').textContent = message;
+                status.classList.add('show');
+            }
+
+            hideSyncStatus() {
+                const status = document.getElementById('syncStatus');
+                status.classList.remove('show');
+            }
+
+            autoSync() {
+                setInterval(() => {
+                    if (!this.syncing && Date.now() - this.lastSync > 30000) {
+                        this.sync();
+                    }
+                }, 5000);
+            }
+        }
+
+        // 初始化应用
+        window.addEventListener('DOMContentLoaded', () => {
+            const app = new DrawingApp();
+            window.drawingApp = app;  // 暴露给全局（用于调试）
+        });
+    </script>
+</body>
+</html>

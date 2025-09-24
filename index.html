@@ -1027,6 +1027,10 @@
             // Touch Events处理
             handleTouchStart(e) {
                 e.preventDefault();
+                // 防止多点触控缩放
+                if (e.touches.length > 1) {
+                    return;
+                }
                 if (e.touches.length === 1) {
                     const touch = e.touches[0];
                     const pressure = touch.force || 1;
@@ -1036,6 +1040,11 @@
 
             handleTouchMove(e) {
                 e.preventDefault();
+                // 防止多点触控干扰绘画
+                if (e.touches.length > 1) {
+                    this.stopDrawing();
+                    return;
+                }
                 if (e.touches.length === 1 && this.isDrawing) {
                     const touch = e.touches[0];
                     const pressure = touch.force || 1;
